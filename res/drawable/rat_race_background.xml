@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/silver" />
+    <item>
+        <bitmap
+            android:src="@drawable/rat"
+            android:tileMode="disabled"
+            android:gravity="center"
+            android:background="@color/silver"
+            android:alpha="0.1" />
+        <!-- Adjust the alpha value for opacity (0.0 to 1.0) -->
+    </item>
+</layer-list>
