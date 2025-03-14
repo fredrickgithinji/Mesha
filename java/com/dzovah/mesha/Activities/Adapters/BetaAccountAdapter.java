@@ -1,5 +1,6 @@
 package com.dzovah.mesha.Activities.Adapters;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.text.NumberFormat;
 import java.util.Locale;
 
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
+
 public class BetaAccountAdapter extends RecyclerView.Adapter<BetaAccountAdapter.BetaAccountViewHolder> {
     private List<BetaAccount> betaAccounts;
     private final Context context;
@@ -39,13 +42,13 @@ public class BetaAccountAdapter extends RecyclerView.Adapter<BetaAccountAdapter.
     private void handleItemClick(BetaAccount account, int position) {
         Intent intent = new Intent(context, BetaAccountDetailActivity.class);
         intent.putExtra("beta_account_id", account.getBetaAccountId());
-        context.startActivity(intent);
+        ((Activity) context).startActivityForResult(intent, 1);
     }
 
     @Override
     public BetaAccountViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-            .inflate(R.layout.item_beta_account, parent, false);
+            .inflate(R.layout.beta_account_item, parent, false);
         return new BetaAccountViewHolder(view);
     }
 
@@ -54,8 +57,7 @@ public class BetaAccountAdapter extends RecyclerView.Adapter<BetaAccountAdapter.
         BetaAccount account = betaAccounts.get(position);
         holder.tvAccountName.setText(account.getBetaAccountName());
         
-        NumberFormat format = NumberFormat.getCurrencyInstance(Locale.getDefault());
-        holder.tvAccountBalance.setText(format.format(account.getBetaAccountBalance()));
+        holder.tvAccountBalance.setText(CurrencyFormatter.format(account.getBetaAccountBalance()));
 
         try {
             String iconPath = account.getBetaAccountIcon().replace("Assets/", "");
@@ -104,9 +106,9 @@ public class BetaAccountAdapter extends RecyclerView.Adapter<BetaAccountAdapter.
 
         BetaAccountViewHolder(View itemView) {
             super(itemView);
-            ivAccountIcon = itemView.findViewById(R.id.ivAccountIcon);
-            tvAccountName = itemView.findViewById(R.id.tvAccountName);
-            tvAccountBalance = itemView.findViewById(R.id.tvAccountBalance);
+            ivAccountIcon = itemView.findViewById(R.id.alpha_account_icon);
+            tvAccountName = itemView.findViewById(R.id.alpha_account_name);
+            tvAccountBalance = itemView.findViewById(R.id.alpha_account_balance);
         }
     }
 

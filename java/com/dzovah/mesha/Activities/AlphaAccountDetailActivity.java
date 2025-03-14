@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.graphics.BitmapFactory;
+import android.content.Intent;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.dzovah.mesha.Methods.Dialogs.CreateAccountDialog;
@@ -19,6 +20,7 @@ import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.dzovah.mesha.Activities.Adapters.BetaAccountAdapter;
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 
 import java.io.InputStream;
 import java.util.List;
@@ -47,16 +49,14 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
-        TextView tvQuoteOfTheDay = findViewById(R.id.tvQuoteOfTheDay);
         LottieAnimationView bubblesAnimationView = findViewById(R.id.bubbles);
         LottieAnimationView piechartAnimationView = findViewById(R.id.piechart);
         FloatingActionButton fabAddBeta = findViewById(R.id.fabAddBetaAccount);
 
         bubblesAnimationView.playAnimation();
         piechartAnimationView.playAnimation();
+        
 
-        Quotes quotes = new Quotes();
-        tvQuoteOfTheDay.setText("Quote: " + quotes.presentQuote());
 
         RecyclerView rvBetaAccounts = findViewById(R.id.rvBetaAccounts);
         rvBetaAccounts.setLayoutManager(new LinearLayoutManager(this));
@@ -77,7 +77,7 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
                         ImageView ivAlphaIcon = findViewById(R.id.ivAlphaAccountIcon);
     
                         tvAlphaName.setText(account.getAlphaAccountName());
-                        tvAlphaBalance.setText(String.format("$%.2f", account.getAlphaAccountBalance()));
+                        tvAlphaBalance.setText(CurrencyFormatter.format(account.getAlphaAccountBalance()));
     
                         try {
                             String iconPath = account.getAlphaAccountIcon().replace("Assets/", "");
@@ -142,5 +142,14 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
             }
         });
         dialog.show();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            loadAlphaAccountDetails();
+            loadBetaAccounts();
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.dzovah.mesha.Activities.Adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
@@ -10,7 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
-import com.dzovah.mesha.Activities.AlphaAccountDetailActivity;
+
 import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.R;
 import java.io.IOException;
@@ -21,6 +20,7 @@ import java.util.Locale;
 import com.dzovah.mesha.Methods.Dialogs.EditAccountDialog;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import java.util.ArrayList;
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 
 public class AlphaAccountAdapter extends RecyclerView.Adapter<AlphaAccountAdapter.AccountViewHolder> {
     private final Context context;
@@ -49,7 +49,7 @@ public class AlphaAccountAdapter extends RecyclerView.Adapter<AlphaAccountAdapte
     @Override
     public AccountViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-            .inflate(R.layout.item_alpha_account, parent, false);
+            .inflate(R.layout.alpha_account_item, parent, false);
         return new AccountViewHolder(view);
     }
 
@@ -58,8 +58,7 @@ public class AlphaAccountAdapter extends RecyclerView.Adapter<AlphaAccountAdapte
         AlphaAccount account = accounts.get(position);
         holder.tvAccountName.setText(account.getAlphaAccountName());
         
-        NumberFormat format = NumberFormat.getCurrencyInstance(Locale.getDefault());
-        holder.tvAccountBalance.setText(format.format(account.getAlphaAccountBalance()));
+        holder.tvAccountBalance.setText(CurrencyFormatter.format(account.getAlphaAccountBalance()));
 
         // Load icon from assets
         try {
@@ -112,9 +111,9 @@ public class AlphaAccountAdapter extends RecyclerView.Adapter<AlphaAccountAdapte
 
         AccountViewHolder(View itemView) {
             super(itemView);
-            ivAccountIcon = itemView.findViewById(R.id.ivAccountIcon);
-            tvAccountName = itemView.findViewById(R.id.tvAccountName);
-            tvAccountBalance = itemView.findViewById(R.id.tvAccountBalance);
+            ivAccountIcon = itemView.findViewById(R.id.alpha_account_icon);
+            tvAccountName = itemView.findViewById(R.id.alpha_account_name);
+            tvAccountBalance = itemView.findViewById(R.id.alpha_account_balance);
         }
     }
 } 

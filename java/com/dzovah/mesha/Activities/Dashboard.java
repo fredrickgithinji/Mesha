@@ -47,7 +47,7 @@ public class Dashboard extends AppCompatActivity {
         Quotes quotes = new Quotes();
         tvQuoteOfTheDay.setText("Quote: " + quotes.presentQuote());
 
-        RecyclerView rvAccounts = findViewById(R.id.rvAccounts);
+        RecyclerView rvAccounts = findViewById(R.id.alpha_accounts_recyclerview);
         rvAccounts.setLayoutManager(new LinearLayoutManager(this));
         accountAdapter = new AlphaAccountAdapter(this);
         accountAdapter.setOnAccountActionListener(new AlphaAccountAdapter.OnAccountActionListener() {

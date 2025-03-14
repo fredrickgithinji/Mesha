@@ -16,9 +16,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.dzovah.mesha.Activities.Adapters.TransactionAdapter;
+import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
 import com.dzovah.mesha.Database.Entities.Transaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import com.dzovah.mesha.Database.Utils.TransactionType;
 import com.dzovah.mesha.Methods.Dialogs.EditAccountDialog;
 import com.dzovah.mesha.R;
@@ -78,7 +80,8 @@ public class BetaAccountDetailActivity extends AppCompatActivity {
                         LottieAnimationView glowiView = findViewById(R.id.glowi);
     
                         tvBetaName.setText(currentBetaAccount.getBetaAccountName());
-                        tvBetaBalance.setText(String.format("$%.2f", currentBetaAccount.getBetaAccountBalance()));
+                        tvBetaBalance.setText(CurrencyFormatter.format(currentBetaAccount.getBetaAccountBalance()));
+                        transactionAdapter.setBetaAccountIcon(currentBetaAccount.getBetaAccountIcon());
     
                         try {
                             String iconPath = currentBetaAccount.getBetaAccountIcon().replace("Assets/", "");
@@ -168,52 +171,48 @@ public class BetaAccountDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Error: Beta account not loaded", Toast.LENGTH_SHORT).show();
             return;
         }
-    
-        long currentTime = System.currentTimeMillis();
-        TransactionType transactionType = type.equals("CREDIT") ? TransactionType.CREDIT : TransactionType.DEBIT;
-        
+
         Transaction newTransaction = new Transaction(
             currentBetaAccount.getAlphaAccountId(),
             betaAccountId,
-            1,  // Use General category (ID: 1)
+            1,  // General category
             description,
             amount,
             type.equals("CREDIT") ? TransactionType.CREDIT : TransactionType.DEBIT,
             System.currentTimeMillis()
         );
-        
+
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                // First insert the transaction
+                // Insert transaction
                 database.transactionDao().insert(newTransaction);
                 
-                // Calculate new balance
-                double newBalance = database.transactionDao().getBetaAccountBalance(betaAccountId);
-                if (newBalance == 0) { // If query returns 0, calculate manually
-                    newBalance = currentBetaAccount.getBetaAccountBalance();
-                    if (transactionType == TransactionType.CREDIT) {
-                        newBalance += amount;
-                    } else {
-                        newBalance -= amount;
-                    }
-                }
-                
-                // Update beta account
-                currentBetaAccount.setBetaAccountBalance(newBalance);
+                // Update beta account balance
+                double newBetaBalance = currentBetaAccount.getBetaAccountBalance();
+                newBetaBalance += type.equals("CREDIT") ? amount : -amount;
+                currentBetaAccount.setBetaAccountBalance(newBetaBalance);
                 database.betaAccountDao().update(currentBetaAccount);
-                
-                // Update alpha account
-                database.betaAccountDao().updateAlphaAccountBalance(currentBetaAccount.getAlphaAccountId());
-                
+
+                // Update alpha account balance
+                AlphaAccount alphaAccount = database.alphaAccountDao()
+                    .getAlphaAccountById(currentBetaAccount.getAlphaAccountId());
+                if (alphaAccount != null) {
+                    double newAlphaBalance = alphaAccount.getAlphaAccountBalance();
+                    newAlphaBalance += type.equals("CREDIT") ? amount : -amount;
+                    alphaAccount.setAlphaAccountBalance(newAlphaBalance);
+                    database.alphaAccountDao().update(alphaAccount);
+                }
+
                 runOnUiThread(() -> {
                     loadBetaAccountDetails();
                     loadTransactions();
+                    // Notify the parent AlphaAccountDetailActivity
+                    setResult(RESULT_OK);
                     Toast.makeText(this, "Transaction added successfully", Toast.LENGTH_SHORT).show();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "Error adding transaction: " + e.getMessage(), 
-                    Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(this, "Error adding transaction", Toast.LENGTH_SHORT).show());
             }
         });
     }
