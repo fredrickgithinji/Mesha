@@ -12,8 +12,11 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.dzovah.mesha.Database.Entities.BetaAccount;
 import com.dzovah.mesha.Database.Entities.Transaction;
+import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
+import com.dzovah.mesha.Methods.Dialogs.EditTransactionDialog;
 import com.dzovah.mesha.R;
 import com.dzovah.mesha.Database.Utils.TransactionType;
 
@@ -28,11 +31,14 @@ import java.util.Locale;
 public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.TransactionViewHolder> {
     private final Context context;
     private List<Transaction> transactions;
-    private String betaAccountIcon; // Add this field
+    private String betaAccountIcon;
+    private final SimpleDateFormat dateFormat;
+    private BetaAccount betaAccount;
 
     public TransactionAdapter(Context context) {
         this.context = context;
         this.transactions = new ArrayList<>();
+        this.dateFormat = new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
     }
 
     public void setTransactions(List<Transaction> transactions) {
@@ -40,9 +46,13 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         notifyDataSetChanged();
     }
 
-    public void setBetaAccountIcon(String iconPath) {
-        this.betaAccountIcon = iconPath;
+    public void setBetaAccountIcon(String icon) {
+        this.betaAccountIcon = icon;
         notifyDataSetChanged();
+    }
+
+    public void setBetaAccount(BetaAccount account) {
+        this.betaAccount = account;
     }
 
     @NonNull
@@ -57,14 +67,9 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         Transaction transaction = transactions.get(position);
         
         holder.tvDescription.setText(transaction.getTransactionDescription());
-        
+        holder.tvAmount.setText(CurrencyFormatter.format(Math.abs(transaction.getTransactionAmount())));
+        holder.tvDate.setText(dateFormat.format(new Date(transaction.getEntryTime())));
 
-            holder.tvAmount.setText(CurrencyFormatter.format(Math.abs(transaction.getTransactionAmount())));
-
-        // Format date
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault());
-        holder.tvDate.setText(sdf.format(new Date(transaction.getEntryTime())));
-        
         // Set color based on TransactionType enum
         holder.tvAmount.setTextColor(ContextCompat.getColor(context,
             transaction.getTransactionType() == TransactionType.CREDIT ? 
@@ -74,12 +79,38 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         try {
             String iconPath = betaAccountIcon.replace("Assets/", "");
             InputStream is = context.getAssets().open(iconPath);
-            Bitmap bitmap = BitmapFactory.decodeStream(is);
-            holder.transaction_icon.setImageBitmap(bitmap);
+            holder.transaction_icon.setImageBitmap(BitmapFactory.decodeStream(is));
             is.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // Set long click listener
+        holder.itemView.setOnLongClickListener(v -> {
+            if (betaAccount != null) {
+                EditTransactionDialog dialog = new EditTransactionDialog(context, 
+                    MeshaDatabase.Get_database(context), transaction, betaAccount);
+                dialog.setOnTransactionEditedListener(new EditTransactionDialog.OnTransactionEditedListener() {
+                    @Override
+                    public void onTransactionEdited() {
+                        // Refresh the list after edit
+                        notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onTransactionDeleted() {
+                        // Remove the item and refresh
+                        int pos = transactions.indexOf(transaction);
+                        if (pos != -1) {
+                            transactions.remove(pos);
+                            notifyItemRemoved(pos);
+                        }
+                    }
+                });
+                dialog.show();
+            }
+            return true;
+        });
     }
 
     @Override
