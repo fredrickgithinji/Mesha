@@ -18,7 +18,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Add Transaction"
+            android:text="Edit Transaction"
             android:textColor="#C4D7E2"
             android:textSize="18sp"
             android:textStyle="bold"
@@ -73,54 +73,23 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Transaction Type"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"/>
-
-            <RadioGroup
-                android:id="@+id/rgTransactionType"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/rbCredit"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Money out"
-                    android:textColor="@color/black"
-                    android:checked="true"
-                    android:layout_marginEnd="16dp"
-                    android:minHeight="0dp"
-                    android:padding="4dp"/>
-
-                <com.google.android.material.radiobutton.MaterialRadioButton
-                    android:id="@+id/rbDebit"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Money in"
-                    android:textColor="@color/black"
-                    android:minHeight="0dp"
-                    android:padding="4dp"/>
-            </RadioGroup>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@color/silver"
             android:padding="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="16dp"
             android:gravity="end">
+
+            <Button
+                android:id="@+id/btnDelete"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delete"
+                android:textColor="@color/white"
+                android:backgroundTint="#FF5252"
+                android:textAllCaps="false"
+                android:padding="8dp"
+                android:minHeight="0dp"
+                android:textSize="16sp"/>
 
             <Button
                 android:id="@+id/btnCancel"
@@ -132,19 +101,20 @@
                 android:textAllCaps="false"
                 android:padding="8dp"
                 android:minHeight="0dp"
+                android:layout_marginStart="8dp"
                 android:textSize="16sp"/>
 
             <Button
-                android:id="@+id/btnAdd"
+                android:id="@+id/btnUpdate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add"
+                android:text="Update"
                 android:textColor="@color/white"
                 android:backgroundTint="@color/silver2"
                 android:textAllCaps="false"
                 android:padding="8dp"
                 android:minHeight="0dp"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="8dp"
                 android:textSize="16sp"/>
         </LinearLayout>
 

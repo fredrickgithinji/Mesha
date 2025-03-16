@@ -22,6 +22,7 @@ import com.dzovah.mesha.Database.Entities.Transaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import com.dzovah.mesha.Database.Utils.TransactionType;
+import com.dzovah.mesha.Methods.Dialogs.AddTransactionDialog;
 import com.dzovah.mesha.Methods.Dialogs.EditAccountDialog;
 import com.dzovah.mesha.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -82,6 +83,7 @@ public class BetaAccountDetailActivity extends AppCompatActivity {
                         tvBetaName.setText(currentBetaAccount.getBetaAccountName());
                         tvBetaBalance.setText(CurrencyFormatter.format(currentBetaAccount.getBetaAccountBalance()));
                         transactionAdapter.setBetaAccountIcon(currentBetaAccount.getBetaAccountIcon());
+                        transactionAdapter.setBetaAccount(currentBetaAccount);
     
                         try {
                             String iconPath = currentBetaAccount.getBetaAccountIcon().replace("Assets/", "");
@@ -137,33 +139,13 @@ public class BetaAccountDetailActivity extends AppCompatActivity {
     }
 
     private void showAddTransactionDialog() {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_transaction, null);
-        EditText etAmount = dialogView.findViewById(R.id.etTransactionAmount);
-        EditText etDescription = dialogView.findViewById(R.id.etTransactionDescription);
-        RadioGroup rgTransactionType = dialogView.findViewById(R.id.rgTransactionType);
-
-        new MaterialAlertDialogBuilder(this)
-            .setTitle("Add Transaction")
-            .setView(dialogView)
-            .setPositiveButton("Add", (dialog, which) -> {
-                String amountStr = etAmount.getText().toString();
-                String description = etDescription.getText().toString();
-                String type = rgTransactionType.getCheckedRadioButtonId() == R.id.rbCredit ? "CREDIT" : "DEBIT";
-
-                if (amountStr.isEmpty() || description.isEmpty()) {
-                    Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                try {
-                    double amount = Double.parseDouble(amountStr);
-                    createTransaction(amount, type, description);
-                } catch (NumberFormatException e) {
-                    Toast.makeText(this, "Invalid amount", Toast.LENGTH_SHORT).show();
-                }
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
+        AddTransactionDialog dialog = new AddTransactionDialog(this, database, currentBetaAccount);
+        dialog.setOnTransactionAddedListener(() -> {
+            loadBetaAccountDetails();
+            loadTransactions();
+            setResult(RESULT_OK);
+        });
+        dialog.show();
     }
 
     private void createTransaction(double amount, String type, String description) {
