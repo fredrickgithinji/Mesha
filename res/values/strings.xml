@@ -42,4 +42,6 @@
     <string name="no_accounts_yet">No accounts yet. Tap + to add your first account.</string>
     <string name="add_account">Create New Account</string>
     <string name="add_beta_account">Create New Beta Account</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 </resources>
