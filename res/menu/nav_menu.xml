@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:id="@+id/nav_top_group">
+        <item
+            android:id="@+id/nav_account"
+            android:icon="@drawable/ic_account"
+            android:title="Account Settings" />
+        <item
+            android:id="@+id/nav_signin"
+            android:icon="@drawable/ic_signin"
+            android:title="Sign In" />
+    </group>
+
+    <group android:id="@+id/nav_bottom_group"
+        android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@drawable/ic_logout"
+            android:title="Logout" />
+    </group>
+</menu> 

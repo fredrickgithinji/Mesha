@@ -12,11 +12,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import com.dzovah.mesha.Database.Daos.AlphaAccountDao;
 import com.dzovah.mesha.Database.Daos.BetaAccountDao;
 import com.dzovah.mesha.Database.Daos.CategoryDao;
+import com.dzovah.mesha.Database.Daos.MeshansDao;
 import com.dzovah.mesha.Database.Daos.TransactionDao;
 import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
 import com.dzovah.mesha.Database.Entities.Category;
 import com.dzovah.mesha.Database.Entities.Transaction;
+import com.dzovah.mesha.Database.Entities.Meshans;
 import com.dzovah.mesha.Database.Utils.TransactionTypeConverter;
 
 import java.util.concurrent.ExecutorService;
@@ -27,7 +29,8 @@ import java.util.concurrent.Executors;
         AlphaAccount.class,
         BetaAccount.class,
         Transaction.class,
-        Category.class
+        Category.class,
+        Meshans.class
     },
     version = 1,
     exportSchema = true
@@ -40,6 +43,7 @@ public abstract class MeshaDatabase extends RoomDatabase {
     public abstract BetaAccountDao betaAccountDao();
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
+    public abstract MeshansDao meshansDao();
 
     // Singleton instance
     private static volatile MeshaDatabase INSTANCE;

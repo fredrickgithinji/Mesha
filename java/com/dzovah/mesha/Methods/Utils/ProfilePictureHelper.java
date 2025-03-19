@@ -5,9 +5,12 @@ import android.content.Intent;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.widget.ImageView;
+import com.bumptech.glide.Glide;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.dzovah.mesha.R;
+import com.google.android.gms.tasks.Task;
 
 public class ProfilePictureHelper {
 
@@ -17,7 +20,7 @@ public class ProfilePictureHelper {
 
     public ProfilePictureHelper(Activity activity) {
         this.activity = activity;
-        this.storageRef = FirebaseStorage.getInstance().getReference("profile_pictures");
+        this.storageRef = FirebaseStorage.getInstance().getReference("Meshans-profile-pics");
     }
 
     // Open the gallery to select an image
@@ -27,18 +30,47 @@ public class ProfilePictureHelper {
     }
 
     // Upload the selected image to Firebase Storage
-    public UploadTask uploadProfilePicture(Uri imageUri, String userId) {
-        StorageReference fileRef = storageRef.child(userId + ".jpg");
-        return fileRef.putFile(imageUri);
+    public Task<Uri> uploadProfilePicture(Uri imageUri, String userId) {
+        StorageReference fileRef = storageRef.child(userId + "/profile.jpg");
+
+        // Delete the old image first (if it exists)
+        return fileRef.delete()
+                .continueWithTask(task -> {
+                    // Whether delete succeeds or fails (file might not exist), continue with upload
+                    return fileRef.putFile(imageUri);
+                })
+                .continueWithTask(uploadTask -> {
+                    if (!uploadTask.isSuccessful()) {
+                        throw uploadTask.getException();
+                    }
+                    // Get the secure download URL after upload
+                    return fileRef.getDownloadUrl();
+                });
     }
 
     // Load the profile picture into an ImageView
     public void loadProfilePicture(String userId, ImageView imageView) {
-        StorageReference fileRef = storageRef.child(userId + ".jpg");
+        StorageReference fileRef = storageRef.child(userId + "/profile.jpg");
+
+        // Try to load the user's profile picture
         fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
-            // Use Glide or Picasso to load the image
-            // Example with Glide:
-            // Glide.with(activity).load(uri).into(imageView);
+            // Use Glide to load the image
+            Glide.with(activity)
+                    .load(uri)
+                    .placeholder(R.drawable.icon_mesha) // Default image while loading
+                    .error(R.drawable.icon_mesha) // Default image if loading fails
+                    .circleCrop() // Crop the image into a circle
+                    .into(imageView);
+        }).addOnFailureListener(e -> {
+            // If the user hasn't uploaded a profile picture, load the default image
+            Glide.with(activity)
+                    .load(R.drawable.icon_mesha)
+                    .circleCrop()
+                    .into(imageView);
         });
+    }
+
+    public static int getPickImageRequest() {
+        return PICK_IMAGE_REQUEST;
     }
 }

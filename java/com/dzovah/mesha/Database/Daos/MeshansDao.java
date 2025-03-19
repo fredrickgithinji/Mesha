@@ -1,24 +1,29 @@
 package com.dzovah.mesha.Database.Daos;
 
+import androidx.lifecycle.LiveData;
+import androidx.room.Dao;
+import androidx.room.Delete;
+import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
+import androidx.room.Query;
+
 import com.dzovah.mesha.Database.Entities.Meshans;
-import com.google.android.gms.tasks.Task;
 
+@Dao
 public interface MeshansDao {
-    // Save or update user details
-    Task<Void> saveUserDetails(Meshans user);
 
-    // Fetch user details by userId
-    Task<Meshans> getUserDetails(String userId);
+    @Insert
+    void insert(Meshans meshans); // Insert the entire Meshans object
+    @Delete
+    void delete(Meshans meshans); // Delete the entire Meshans object
 
-    // Update username
-    Task<Void> updateUsername(String userId, String newUsername);
 
-    // Update email
-    Task<Void> updateEmail(String userId, String newEmail);
+     @Query("SELECT * FROM Meshans WHERE userId = :userId")
+    LiveData<Meshans> get(String userId); // Fetch by userId
 
-    // Update profile picture URL
-    Task<Void> updateProfilePictureUrl(String userId, String newProfilePictureUrl);
+    @Query("DELETE FROM Meshans WHERE userId = :userId")
+    void deleteByUserId(String userId);
 
-    // Add user details to the database
-    Task<Void> createUserDetails(Meshans meshan);
+
+
 }

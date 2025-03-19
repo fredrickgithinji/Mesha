@@ -61,6 +61,7 @@ public class AuthManager {
 
     // Google Sign-In Intent
     public Intent getGoogleSignInIntent() {
+        googleSignInClient.signOut();
         return googleSignInClient.getSignInIntent();
     }
 
@@ -104,6 +105,17 @@ public class AuthManager {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         listener.onSuccess(null);
+                    } else {
+                        listener.onFailure(task.getException());
+                    }
+                });
+    }
+
+    public void createUserWithEmail(String email, String password, OnAuthCompleteListener listener) {
+        auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        listener.onSuccess(auth.getCurrentUser());
                     } else {
                         listener.onFailure(task.getException());
                     }

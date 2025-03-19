@@ -2,6 +2,8 @@ package com.dzovah.mesha.Activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
@@ -17,6 +19,10 @@ import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.dzovah.mesha.Activities.Adapters.AlphaAccountAdapter;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.appcheck.FirebaseAppCheck;
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -32,42 +38,77 @@ public class Dashboard extends AppCompatActivity {
     private AlphaAccountAdapter accountAdapter;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
+    private ImageButton menuButton; // Add this line
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dashboard);
-        
-        // Setup toolbar and drawer
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        
+
+        FirebaseAppCheck.getInstance().getAppCheckToken(true)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String token = task.getResult().getToken();
+                        Log.d("AppCheckDebug", "Debug token: " + token);
+                    } else {
+                        Log.e("AppCheckDebug", "Error retrieving App Check token", task.getException());
+                    }
+                });
+
+        // In your Application class or main Activity's onCreate
+       /* FirebaseApp.initializeApp(this);
+        FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
+        firebaseAppCheck.installAppCheckProviderFactory(
+
+                 PlayIntegrityAppCheckProviderFactory.getInstance()
+        );
+*/
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        /*if (currentUser == null) {
+            startActivity(new Intent(Dashboard.this, SignInActivity.class));
+            finish();
+            return;
+        }
+*/
+        // Initialize views
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
-        
+        menuButton = findViewById(R.id.menuButton); // Initialize the menu button
+
+        // Set up the ActionBarDrawerToggle for the right-side drawer
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-            this, drawerLayout, toolbar,
-            R.string.navigation_drawer_open,
-            R.string.navigation_drawer_close);
+                this, drawerLayout,
+                R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
-        
+
+        // Set click listener for the menu button
+        menuButton.setOnClickListener(v -> {
+            if (drawerLayout.isDrawerOpen(GravityCompat.END)) {
+                drawerLayout.closeDrawer(GravityCompat.END); // Close the drawer if it's open
+            } else {
+                drawerLayout.openDrawer(GravityCompat.END); // Open the drawer if it's closed
+            }
+        });
+
+        // Set up navigation item selection
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_account) {
                 startActivity(new Intent(Dashboard.this, AccountsSection.class));
+            } else if (id == R.id.nav_signin) {
+                startActivity(new Intent(Dashboard.this, SignInActivity.class));
             } else if (id == R.id.nav_logout) {
                 FirebaseAuth.getInstance().signOut();
                 startActivity(new Intent(Dashboard.this, SignInActivity.class));
                 finish();
             }
-            drawerLayout.closeDrawer(GravityCompat.START);
+            drawerLayout.closeDrawer(GravityCompat.END); // Changed from START to END
             return true;
         });
-        
-        // Get current user but don't redirect if null
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        
+
+
         database = MeshaDatabase.Get_database(getApplicationContext());
         initializeViews();
         loadAccounts();
@@ -121,8 +162,8 @@ public class Dashboard extends AppCompatActivity {
                     });
                 } catch (Exception e) {
                     e.printStackTrace();
-                    runOnUiThread(() -> 
-                        Toast.makeText(this, "Error loading accounts", Toast.LENGTH_SHORT).show()
+                    runOnUiThread(() ->
+                            Toast.makeText(this, "Error loading accounts", Toast.LENGTH_SHORT).show()
                     );
                 }
             });

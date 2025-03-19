@@ -95,7 +95,7 @@
                     android:id="@+id/rbCredit"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Money out"
+                    android:text="Money in"
                     android:textColor="@color/black"
                     android:checked="true"
                     android:layout_marginEnd="16dp"
@@ -106,7 +106,7 @@
                     android:id="@+id/rbDebit"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Money in"
+                    android:text="Money out"
                     android:textColor="@color/black"
                     android:minHeight="0dp"
                     android:padding="4dp"/>

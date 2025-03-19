@@ -17,17 +17,19 @@ import com.google.firebase.auth.FirebaseUser;
 
 import com.dzovah.mesha.Database.Entities.Meshans;
 import com.dzovah.mesha.Database.Daos.MeshansDao;
-import com.dzovah.mesha.Database.Daos.FirebaseMeshansDao;
+import com.dzovah.mesha.Database.Daos.Firebase_Meshans_Data_linkDao;
+import com.dzovah.mesha.Database.MeshaDatabase;
+import com.dzovah.mesha.Database.Repositories.MeshansRepository;
 
 public class SignUpActivity extends AppCompatActivity {
 
     private AuthManager authManager;
+    private MeshansRepository meshansRepository;
     private EditText emailEditText, passwordEditText;
     private Button signUpButton;
     private TextView signInTextView;
     private static final int RC_SIGN_IN = 9001;
     private Button googleSignUpButton;
-    private MeshansDao meshansDao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,8 +46,10 @@ public class SignUpActivity extends AppCompatActivity {
         // Initialize AuthManager
         authManager = new AuthManager(this);
 
-        // Initialize MeshansDao
-        meshansDao = new FirebaseMeshansDao();
+        // Initialize MeshansRepository
+        Firebase_Meshans_Data_linkDao firebaseDao = new Firebase_Meshans_Data_linkDao();
+        MeshansDao roomDao = MeshaDatabase.Get_database(this).meshansDao();
+        meshansRepository = new MeshansRepository(firebaseDao, roomDao);
 
         // Set click listeners
         signUpButton.setOnClickListener(v -> signUp());
@@ -77,8 +81,8 @@ public class SignUpActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Exception exception) {
-                Toast.makeText(SignUpActivity.this, "Sign-up failed: " + exception.getMessage(), 
-                    Toast.LENGTH_SHORT).show();
+                Toast.makeText(SignUpActivity.this, "Sign-up failed: " + exception.getMessage(),
+                        Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -107,26 +111,38 @@ public class SignUpActivity extends AppCompatActivity {
 
                 @Override
                 public void onFailure(Exception exception) {
-                    Toast.makeText(SignUpActivity.this, 
-                        "Google sign up failed: " + exception.getMessage(), 
-                        Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SignUpActivity.this,
+                            "Google sign up failed: " + exception.getMessage(),
+                            Toast.LENGTH_SHORT).show();
                 }
             });
         }
     }
 
     private void storeUserDetails(FirebaseUser user) {
+        // Create new Meshans object with required fields
         Meshans meshan = new Meshans();
-        meshan.setUserId(user.getUid());
-        meshan.setEmail(user.getEmail());
-        meshan.setUsername("Meshan894");
-        
-        meshansDao.createUserDetails(meshan)
-            .addOnSuccessListener(aVoid -> {
-                Toast.makeText(SignUpActivity.this, "User details stored successfully", Toast.LENGTH_SHORT).show();
-            })
-            .addOnFailureListener(e -> {
-                Toast.makeText(SignUpActivity.this, "Failed to store user details", Toast.LENGTH_SHORT).show();
-            });
+        meshan.setUserId(user.getUid()); // Set UID as document ID
+        meshan.setEmail(user.getEmail()); // Set user's email
+        meshan.setUsername("Meshan" + user.getUid().substring(0, 4)); // Default username
+        meshan.setProfilePictureUrl("to edit"); // Default profile picture URL
+        meshan.setPremium(false); // Default premium status
+
+        // Save user details using repository with the improved method
+        meshansRepository.saveUser(meshan)
+                .addOnSuccessListener(aVoid -> {
+                    // Both Firebase and Room operations completed successfully
+                    Toast.makeText(SignUpActivity.this, "User details stored successfully", Toast.LENGTH_SHORT).show();
+                    // Navigate to dashboard after successful save
+                    startActivity(new Intent(SignUpActivity.this, Dashboard.class));
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(SignUpActivity.this, "Failed to store user details: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    // Even if saving fails, still try to navigate to dashboard
+                    startActivity(new Intent(SignUpActivity.this, Dashboard.class));
+                    finish();
+                });
     }
+
 }
