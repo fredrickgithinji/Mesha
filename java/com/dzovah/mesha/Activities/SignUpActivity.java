@@ -20,6 +20,8 @@ import com.dzovah.mesha.Database.Daos.MeshansDao;
 import com.dzovah.mesha.Database.Daos.Firebase_Meshans_Data_linkDao;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Repositories.MeshansRepository;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Logger;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -35,7 +37,6 @@ public class SignUpActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
-
         // Initialize views
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);

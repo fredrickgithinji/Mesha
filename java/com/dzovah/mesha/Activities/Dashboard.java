@@ -2,7 +2,6 @@ package com.dzovah.mesha.Activities;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,15 +18,13 @@ import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.dzovah.mesha.Activities.Adapters.AlphaAccountAdapter;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.appcheck.FirebaseAppCheck;
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
+
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.appcompat.widget.Toolbar;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Logger;
+
 import androidx.core.view.GravityCompat;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 
@@ -45,15 +42,6 @@ public class Dashboard extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dashboard);
 
-        FirebaseAppCheck.getInstance().getAppCheckToken(true)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        String token = task.getResult().getToken();
-                        Log.d("AppCheckDebug", "Debug token: " + token);
-                    } else {
-                        Log.e("AppCheckDebug", "Error retrieving App Check token", task.getException());
-                    }
-                });
 
         // In your Application class or main Activity's onCreate
        /* FirebaseApp.initializeApp(this);
@@ -62,13 +50,7 @@ public class Dashboard extends AppCompatActivity {
 
                  PlayIntegrityAppCheckProviderFactory.getInstance()
         );
-*/
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        /*if (currentUser == null) {
-            startActivity(new Intent(Dashboard.this, SignInActivity.class));
-            finish();
-            return;
-        }
 */
         // Initialize views
         drawerLayout = findViewById(R.id.drawer_layout);
