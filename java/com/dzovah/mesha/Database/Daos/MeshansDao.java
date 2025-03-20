@@ -12,8 +12,8 @@ import com.dzovah.mesha.Database.Entities.Meshans;
 @Dao
 public interface MeshansDao {
 
-    @Insert
-    void insert(Meshans meshans); // Insert the entire Meshans object
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insert(Meshans meshan);
     @Delete
     void delete(Meshans meshans); // Delete the entire Meshans object
 

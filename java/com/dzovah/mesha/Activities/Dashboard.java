@@ -2,15 +2,21 @@ package com.dzovah.mesha.Activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.airbnb.lottie.LottieAnimationView;
+import com.dzovah.mesha.Database.Entities.Meshans;
 import com.dzovah.mesha.R;
 import com.dzovah.mesha.Methods.Utils.Quotes;
 import com.dzovah.mesha.Methods.Dialogs.CreateAccountDialog;
@@ -20,10 +26,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.dzovah.mesha.Activities.Adapters.AlphaAccountAdapter;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import androidx.drawerlayout.widget.DrawerLayout;
 import com.google.android.material.navigation.NavigationView;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Logger;
 
 import androidx.core.view.GravityCompat;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -31,31 +36,26 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import java.util.List;
 
 public class Dashboard extends AppCompatActivity {
+    private static final String TAG = "Dashboard";
     private MeshaDatabase database;
     private AlphaAccountAdapter accountAdapter;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
-    private ImageButton menuButton; // Add this line
+    private ImageButton menuButton;
+    private Menu navMenu;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dashboard);
 
-
-        // In your Application class or main Activity's onCreate
-       /* FirebaseApp.initializeApp(this);
-        FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
-        firebaseAppCheck.installAppCheckProviderFactory(
-
-                 PlayIntegrityAppCheckProviderFactory.getInstance()
-        );
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-*/
         // Initialize views
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
-        menuButton = findViewById(R.id.menuButton); // Initialize the menu button
+        menuButton = findViewById(R.id.menuButton);
+
+        // Get the navigation menu immediately
+        navMenu = navigationView.getMenu();
 
         // Set up the ActionBarDrawerToggle for the right-side drawer
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -68,9 +68,9 @@ public class Dashboard extends AppCompatActivity {
         // Set click listener for the menu button
         menuButton.setOnClickListener(v -> {
             if (drawerLayout.isDrawerOpen(GravityCompat.END)) {
-                drawerLayout.closeDrawer(GravityCompat.END); // Close the drawer if it's open
+                drawerLayout.closeDrawer(GravityCompat.END);
             } else {
-                drawerLayout.openDrawer(GravityCompat.END); // Open the drawer if it's closed
+                drawerLayout.openDrawer(GravityCompat.END);
             }
         });
 
@@ -86,14 +86,95 @@ public class Dashboard extends AppCompatActivity {
                 startActivity(new Intent(Dashboard.this, SignInActivity.class));
                 finish();
             }
-            drawerLayout.closeDrawer(GravityCompat.END); // Changed from START to END
+            drawerLayout.closeDrawer(GravityCompat.END);
             return true;
         });
-
 
         database = MeshaDatabase.Get_database(getApplicationContext());
         initializeViews();
         loadAccounts();
+
+        // Check if user is signed in first
+        checkUserAndUpdateMenu();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh the premium status every time the Dashboard comes to the foreground
+        checkUserAndUpdateMenu();
+    }
+
+    private void checkUserAndUpdateMenu() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            // First update navigation menu to show logout option
+            updateNavigationForSignedInUser(true);
+
+            // Then observe premium status
+            observePremiumStatusAndUpdateMenu(currentUser.getUid());
+        } else {
+            // User is not signed in
+            updateNavigationForSignedInUser(false);
+
+            // Set default icon for account menu item
+            MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
+            if (accountMenuItem != null) {
+                accountMenuItem.setIcon(R.drawable.ic_normal_account);
+            }
+        }
+    }
+
+    private void updateNavigationForSignedInUser(boolean isSignedIn) {
+        MenuItem signInItem = navMenu.findItem(R.id.nav_signin);
+        MenuItem logoutItem = navMenu.findItem(R.id.nav_logout);
+
+        if (signInItem != null && logoutItem != null) {
+            signInItem.setVisible(!isSignedIn);
+            logoutItem.setVisible(isSignedIn);
+        }
+    }
+
+    private void observePremiumStatusAndUpdateMenu(String userId) {
+        Log.d(TAG, "Observing premium status for user: " + userId);
+
+        // First try to get real-time updates from Firestore/Firebase
+        // Check if your MeshansRepository or Firebase_Meshans_Data_linkDao has a method to get real-time updates
+
+        // Then fallback to Room database observation
+        LiveData<Meshans> userLiveData = database.meshansDao().get(userId);
+        userLiveData.observe(this, user -> {
+            if (user != null) {
+                boolean isPremium = user.isPremium();
+                Log.d(TAG, "User premium status: " + isPremium);
+                updateMenuIcon(isPremium);
+            } else {
+                Log.d(TAG, "User data is null");
+                updateMenuIcon(false); // Default to non-premium if no user data
+            }
+        });
+    }
+
+    private void updateMenuIcon(boolean isPremium) {
+        runOnUiThread(() -> {
+            Log.d(TAG, "Updating menu icon. Premium: " + isPremium);
+
+            MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
+            if (accountMenuItem != null) {
+                if (isPremium) {
+                    Log.d(TAG, "Setting premium icon");
+                    accountMenuItem.setIcon(R.drawable.ic_premium_account);
+                } else {
+                    Log.d(TAG, "Setting normal icon");
+                    accountMenuItem.setIcon(R.drawable.ic_normal_account);
+                }
+
+                // Force menu to refresh
+                invalidateOptionsMenu();
+            } else {
+                Log.e(TAG, "Account menu item not found!");
+            }
+        });
     }
 
     private void initializeViews() {

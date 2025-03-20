@@ -3,8 +3,9 @@
     <group android:id="@+id/nav_top_group">
         <item
             android:id="@+id/nav_account"
-            android:icon="@drawable/ic_account"
+            android:icon="@drawable/ic_normal_account"
             android:title="Account Settings" />
+
         <item
             android:id="@+id/nav_signin"
             android:icon="@drawable/ic_signin"

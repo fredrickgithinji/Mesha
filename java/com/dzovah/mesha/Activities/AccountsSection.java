@@ -1,12 +1,21 @@
 package com.dzovah.mesha.Activities;
 
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -20,6 +29,7 @@ import com.dzovah.mesha.Database.Entities.Meshans;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Repositories.MeshansRepository;
 import com.dzovah.mesha.Methods.Utils.AuthManager;
+import com.dzovah.mesha.Methods.Utils.LocalStorageUtil;
 import com.dzovah.mesha.R;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
@@ -28,6 +38,10 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +51,8 @@ public class AccountsSection extends AppCompatActivity {
     private ImageView profilePictureImageView;
     private Button changeProfilePictureButton, saveButton;
     private EditText usernameEditText, emailEditText;
+    private ProgressBar progressBar;
+    private TextView statusTextView;
 
     private MeshansRepository meshansRepository;
     private AuthManager authManager;
@@ -67,6 +83,8 @@ public class AccountsSection extends AppCompatActivity {
         usernameEditText = findViewById(R.id.usernameEditText);
         emailEditText = findViewById(R.id.emailEditText);
         saveButton = findViewById(R.id.saveButton);
+        progressBar = findViewById(R.id.progressBar);
+        statusTextView = findViewById(R.id.statusTextView);
 
         // Initialize repositories and auth manager
         initializeRepositories();
@@ -102,18 +120,22 @@ public class AccountsSection extends AppCompatActivity {
         changeProfilePictureButton.setOnClickListener(v -> openImagePicker());
 
         // Set up save button
-        saveButton.setOnClickListener(v -> saveUserChanges());
+        saveButton.setOnClickListener(v -> {
+            // Disable the button to prevent multiple clicks
+            saveButton.setEnabled(false);
+            saveUserChanges();
+        });
     }
+
 
     private void loadCurrentUserData() {
         if (currentUser == null) return;
 
         // Show loading state
-        // showLoadingState();
+        showLoadingState("Loading profile data...");
 
         meshansRepository.getUser(currentUser.getUid())
                 .addOnSuccessListener(user -> {
-                    // hideLoadingState();
                     if (user != null) {
                         currentMeshansUser = user;
 
@@ -121,21 +143,91 @@ public class AccountsSection extends AppCompatActivity {
                         usernameEditText.setText(user.getUsername());
                         emailEditText.setText(user.getEmail());
 
-                        // Load profile picture
-                        if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().equals("to edit")) {
-                            Glide.with(this)
-                                    .load(user.getProfilePictureUrl())
-                                    .placeholder(R.drawable.icon_mesha)
-                                    .into(profilePictureImageView);
-                        }
+                        // Load profile picture - improved handling
+                        loadProfilePicture(user);
+
+                        hideLoadingState();
                     } else {
+                        hideLoadingState();
                         Toast.makeText(this, "Failed to load user data", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(e -> {
-                    // hideLoadingState();
+                    hideLoadingState();
                     Toast.makeText(this, "Error loading user data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void loadProfilePicture(Meshans user) {
+        String fileName = user.getUserId() + "_profile.png";
+
+        // Set placeholder image initially
+        profilePictureImageView.setImageResource(R.drawable.icon_mesha);
+
+        if (user.getProfilePictureUrl() == null || user.getProfilePictureUrl().equals("to edit")) {
+            // No profile picture to load
+            return;
+        }
+
+        // Always try to load cached image first
+        Bitmap cachedImage = LocalStorageUtil.loadImage(this, fileName);
+        if (cachedImage != null) {
+            // Use cached image
+            Log.d("AccountsSection", "Using cached profile image");
+            profilePictureImageView.setImageBitmap(cachedImage);
+            return; // Return early if we have a cached image
+        }
+
+        // If we're here, there's no cached image but we have a URL
+        // Check if we have connectivity before attempting to download
+        if (isNetworkAvailable()) {
+            Log.d("AccountsSection", "Downloading profile image: " + user.getProfilePictureUrl());
+            downloadAndSaveProfilePicture(user.getProfilePictureUrl(), user.getUserId());
+        } else {
+            Log.d("AccountsSection", "No network connection and no cached image available");
+            // Just keep the placeholder visible
+        }
+    }
+
+    private void downloadAndSaveProfilePicture(String imageUrl, String userId) {
+        if (imageUrl == null || imageUrl.isEmpty()) return;
+
+        // Show a small loading indicator
+        updateProgressStatus("Downloading profile picture...");
+
+        // Use Glide to handle the downloading and caching
+        Glide.with(this)
+                .asBitmap()
+                .load(imageUrl)
+                .into(new com.bumptech.glide.request.target.SimpleTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(Bitmap bitmap, com.bumptech.glide.request.transition.Transition<? super Bitmap> transition) {
+                        // Save the image to local storage
+                        String fileName = userId + "_profile.png";
+                        boolean saved = LocalStorageUtil.saveImage(AccountsSection.this, bitmap, fileName);
+                        Log.d("AccountsSection", "Profile image saved to local storage: " + saved);
+
+                        // Set the image
+                        profilePictureImageView.setImageBitmap(bitmap);
+                        hideLoadingState();
+                    }
+
+                    @Override
+                    public void onLoadFailed(android.graphics.drawable.Drawable errorDrawable) {
+                        Log.e("AccountsSection", "Failed to download profile image: " + imageUrl);
+                        hideLoadingState();
+                    }
+                });
+    }
+
+    // Add this helper method to check for network connectivity
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager != null) {
+            NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        }
+        return false;
     }
 
     private void openImagePicker() {
@@ -151,7 +243,10 @@ public class AccountsSection extends AppCompatActivity {
     }
 
     private void saveUserChanges() {
-        if (currentUser == null || currentMeshansUser == null) return;
+        if (currentUser == null || currentMeshansUser == null) {
+            saveButton.setEnabled(true);
+            return;
+        }
 
         String newUsername = usernameEditText.getText().toString().trim();
         String newEmail = emailEditText.getText().toString().trim();
@@ -159,11 +254,12 @@ public class AccountsSection extends AppCompatActivity {
         // Validate inputs
         if (newUsername.isEmpty() || newEmail.isEmpty()) {
             Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            saveButton.setEnabled(true);
             return;
         }
 
         // Show loading state
-        // showLoadingState();
+        showLoadingState("Saving changes...");
 
         // Create a map for the updates
         Map<String, Object> updates = new HashMap<>();
@@ -181,6 +277,7 @@ public class AccountsSection extends AppCompatActivity {
 
         // Handle profile picture upload if selected
         if (selectedImageUri != null) {
+            showLoadingState("Uploading profile picture...");
             uploadProfilePicture(updates);
         } else {
             // Just update the user details without changing the profile picture
@@ -195,11 +292,25 @@ public class AccountsSection extends AppCompatActivity {
 
         // Upload the image
         fileRef.putFile(selectedImageUri)
+                .addOnProgressListener(taskSnapshot -> {
+                    // Calculate progress percentage
+                    double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+                    updateProgressStatus("Uploading image: " + (int)progress + "%");
+                })
                 .addOnSuccessListener(taskSnapshot -> {
                     // Get the download URL
+                    updateProgressStatus("Processing image...");
                     fileRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
                         // Add the profile picture URL to the updates
                         updates.put("profilePictureUrl", downloadUri.toString());
+
+                        // Save the new image locally
+                        try {
+                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
+                            LocalStorageUtil.saveImage(this, bitmap, currentUser.getUid() + "_profile.png");
+                        } catch (IOException e) {
+                            Log.e("AccountsSection", "Error saving new image: " + e.getMessage());
+                        }
 
                         // Now update the user details
                         boolean emailChanged = !emailEditText.getText().toString().trim()
@@ -208,24 +319,28 @@ public class AccountsSection extends AppCompatActivity {
                     });
                 })
                 .addOnFailureListener(e -> {
-                    // hideLoadingState();
+                    hideLoadingState();
                     Toast.makeText(this, "Failed to upload profile picture: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
+                    saveButton.setEnabled(true);
                 });
     }
 
     private void updateUserDetails(Map<String, Object> updates, boolean emailChanged, String newEmail) {
         if (updates.isEmpty() && !emailChanged) {
-            // hideLoadingState();
+            hideLoadingState();
             Toast.makeText(this, "No changes to save", Toast.LENGTH_SHORT).show();
+            saveButton.setEnabled(true);
             return;
         }
 
         // If email is changed, we need to update Firebase Auth as well
         if (emailChanged) {
+            updateProgressStatus("Updating email address...");
             updateEmailInFirebaseAuth(newEmail, updates);
         } else {
             // Just update the Meshans data in Firestore
+            updateProgressStatus("Saving profile data...");
             updateMeshansData(updates);
         }
     }
@@ -235,23 +350,25 @@ public class AccountsSection extends AppCompatActivity {
         currentUser.updateEmail(newEmail)
                 .addOnSuccessListener(aVoid -> {
                     // Email updated successfully in Auth, now update in Firestore
+                    updateProgressStatus("Email updated, saving profile...");
                     updateMeshansData(updates);
                 })
                 .addOnFailureListener(e -> {
                     // This could fail if the user has not recently signed in
-                    // You might need to re-authenticate the user
-                    // hideLoadingState();
+                    hideLoadingState();
                     Toast.makeText(this, "Failed to update email. You may need to sign in again: "
                             + e.getMessage(), Toast.LENGTH_LONG).show();
+                    saveButton.setEnabled(true);
 
                     // Option to re-authenticate (this would require getting the password from user)
-                    // promptForReauthentication(newEmail, updates);
+                    promptForReauthentication(newEmail, updates);
                 });
     }
 
-    // This method would be used if re-authentication is needed
     private void reauthenticateAndUpdateEmail(String password, String newEmail, Map<String, Object> updates) {
         if (currentUser == null) return;
+
+        showLoadingState("Re-authenticating...");
 
         // Create credential
         AuthCredential credential = EmailAuthProvider.getCredential(currentUser.getEmail(), password);
@@ -260,59 +377,108 @@ public class AccountsSection extends AppCompatActivity {
         currentUser.reauthenticate(credential)
                 .addOnSuccessListener(aVoid -> {
                     // Now update the email
+                    updateProgressStatus("Updating email address...");
                     currentUser.updateEmail(newEmail)
-                            .addOnSuccessListener(aVoid2 -> updateMeshansData(updates))
+                            .addOnSuccessListener(aVoid2 -> {
+                                updateProgressStatus("Email updated, saving profile...");
+                                updateMeshansData(updates);
+                            })
                             .addOnFailureListener(e -> {
-                                // hideLoadingState();
+                                hideLoadingState();
                                 Toast.makeText(this, "Failed to update email: " + e.getMessage(),
                                         Toast.LENGTH_SHORT).show();
+                                saveButton.setEnabled(true);
                             });
                 })
                 .addOnFailureListener(e -> {
-                    // hideLoadingState();
+                    hideLoadingState();
                     Toast.makeText(this, "Authentication failed: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
+                    saveButton.setEnabled(true);
                 });
     }
 
     private void updateMeshansData(Map<String, Object> updates) {
         if (updates.isEmpty()) {
-            // hideLoadingState();
+            hideLoadingState();
             Toast.makeText(this, "No changes to save", Toast.LENGTH_SHORT).show();
+            saveButton.setEnabled(true);
             return;
         }
 
         // Use the repository method to update user details
         meshansRepository.editUserDetails(currentUser.getUid(), updates)
                 .addOnSuccessListener(aVoid -> {
-                    // hideLoadingState();
+                    hideLoadingState();
                     Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show();
+                    saveButton.setEnabled(true);
+                    // Reset selected image
+                    selectedImageUri = null;
                     // Reload user data to reflect changes
                     loadCurrentUserData();
                 })
                 .addOnFailureListener(e -> {
-                    // hideLoadingState();
+                    hideLoadingState();
                     Toast.makeText(this, "Failed to update profile: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
+                    saveButton.setEnabled(true);
                 });
     }
 
-    // Placeholder for a method to show a dialog for re-authentication
-    // This would be implemented if needed for email changes
-    /*
+    // Implement re-authentication dialog
     private void promptForReauthentication(String newEmail, Map<String, Object> updates) {
-        // Create a dialog to get password
-        // On dialog complete, call reauthenticateAndUpdateEmail(password, newEmail, updates)
-    }
-    */
+        // This is a simplified example - you would create a proper dialog in your app
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Re-authentication Required");
+        builder.setMessage("Please enter your password to continue");
 
-    /*
-    private void showLoadingState() {
-        // Show a progress dialog or other loading indicator
+        // Add an EditText to input password
+        final EditText passwordInput = new EditText(this);
+        passwordInput.setHint("Password");
+        passwordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        builder.setView(passwordInput);
+
+        builder.setPositiveButton("Continue", (dialog, which) -> {
+            String password = passwordInput.getText().toString();
+            if (!password.isEmpty()) {
+                reauthenticateAndUpdateEmail(password, newEmail, updates);
+            } else {
+                Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
+                saveButton.setEnabled(true);
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            dialog.cancel();
+            saveButton.setEnabled(true);
+        });
+
+        builder.show();
+    }
+
+
+    private void showLoadingState(String message) {
+        progressBar.setVisibility(View.VISIBLE);
+        statusTextView.setText(message);
+        statusTextView.setVisibility(View.VISIBLE);
+        disableInputs(true);
+    }
+
+    private void updateProgressStatus(String message) {
+        statusTextView.setText(message);
     }
 
     private void hideLoadingState() {
-        // Hide the progress dialog or loading indicator
+        progressBar.setVisibility(View.INVISIBLE);
+        statusTextView.setVisibility(View.INVISIBLE);
+        disableInputs(false);
     }
-    */
+
+    private void disableInputs(boolean disable) {
+        usernameEditText.setEnabled(!disable);
+        emailEditText.setEnabled(!disable);
+        changeProfilePictureButton.setEnabled(!disable);
+        // saveButton is managed separately to prevent multiple clicks
+    }
 }
