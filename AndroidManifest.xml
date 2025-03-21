@@ -54,6 +54,12 @@
             android:exported="true">
         </activity>
 
+
+        <activity android:name=".Activities.AnalysisActivity"
+            android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:exported="true">
+        </activity>
+
     </application>
 
 </manifest>

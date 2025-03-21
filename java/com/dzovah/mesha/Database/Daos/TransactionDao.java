@@ -54,4 +54,8 @@ double getBetaAccountBalance(int betaAccountId);
     // Get all transactions for an Alpha Account
     @Query("SELECT * FROM Transactions WHERE Alpha_account_id = :alphaAccountId ORDER BY Entry_time DESC")
     List<Transaction> getAllTransactionsByAlphaAccountId(int alphaAccountId);
+
+    @Query("SELECT * FROM Transactions ORDER BY Entry_time DESC")
+    List<Transaction> getAllTransactionsByEntryTime();
+
 }

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -53,6 +54,7 @@ public class Dashboard extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         menuButton = findViewById(R.id.menuButton);
+        LottieAnimationView piechart = findViewById(R.id.piechart);
 
         // Get the navigation menu immediately
         navMenu = navigationView.getMenu();
@@ -71,6 +73,16 @@ public class Dashboard extends AppCompatActivity {
                 drawerLayout.closeDrawer(GravityCompat.END);
             } else {
                 drawerLayout.openDrawer(GravityCompat.END);
+            }
+        });
+
+
+        piechart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Navigate to AnalysisActivity when clicked
+                Intent intent = new Intent(Dashboard.this, AnalysisActivity.class);
+                startActivity(intent);
             }
         });
 
