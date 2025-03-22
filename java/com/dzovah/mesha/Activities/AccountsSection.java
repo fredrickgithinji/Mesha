@@ -2,6 +2,7 @@ package com.dzovah.mesha.Activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
@@ -72,6 +73,9 @@ public class AccountsSection extends AppCompatActivity {
                 }
             });
 
+    // Add a new constant to track if data should be refreshed
+    private boolean shouldRefreshData = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,8 +96,8 @@ public class AccountsSection extends AppCompatActivity {
         // Set up event listeners
         setupEventListeners();
 
-        // Load current user data
-        loadCurrentUserData();
+        // Load current user data - initial load from cache first
+        loadCurrentUserDataFromCache();
     }
 
     private void initializeRepositories() {
@@ -124,11 +128,46 @@ public class AccountsSection extends AppCompatActivity {
             // Disable the button to prevent multiple clicks
             saveButton.setEnabled(false);
             saveUserChanges();
+            // Set flag to refresh data next time to verify changes
+            shouldRefreshData = true;
         });
     }
 
+    // New method to load user data from cache first
+    private void loadCurrentUserDataFromCache() {
+        if (currentUser == null) return;
 
-    private void loadCurrentUserData() {
+        // Check if we have the data in shared preferences
+        SharedPreferences prefs = getSharedPreferences("user_data", MODE_PRIVATE);
+        String cachedUsername = prefs.getString("username_" + currentUser.getUid(), null);
+        String cachedEmail = prefs.getString("email_" + currentUser.getUid(), null);
+        
+        if (cachedUsername != null && cachedEmail != null) {
+            // We have cached data, use it immediately
+            usernameEditText.setText(cachedUsername);
+            emailEditText.setText(cachedEmail);
+            
+            // Also load cached profile picture
+            Bitmap cachedImage = LocalStorageUtil.loadImage(this, currentUser.getUid() + "_profile.png");
+            if (cachedImage != null) {
+                profilePictureImageView.setImageBitmap(cachedImage);
+            } else {
+                profilePictureImageView.setImageResource(R.drawable.icon_mesha);
+            }
+            
+            // Only fetch from network if explicitly needed (after save or first time)
+            if (shouldRefreshData) {
+                loadCurrentUserDataFromNetwork();
+                shouldRefreshData = false; // Reset flag
+            }
+        } else {
+            // No cached data, must get from network
+            loadCurrentUserDataFromNetwork();
+        }
+    }
+
+    // Renamed method to be clear it's a network operation
+    private void loadCurrentUserDataFromNetwork() {
         if (currentUser == null) return;
 
         // Show loading state
@@ -143,7 +182,14 @@ public class AccountsSection extends AppCompatActivity {
                         usernameEditText.setText(user.getUsername());
                         emailEditText.setText(user.getEmail());
 
-                        // Load profile picture - improved handling
+                        // Cache the user data in SharedPreferences
+                        SharedPreferences prefs = getSharedPreferences("user_data", MODE_PRIVATE);
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putString("username_" + user.getUserId(), user.getUsername());
+                        editor.putString("email_" + user.getUserId(), user.getEmail());
+                        editor.apply();
+
+                        // Load profile picture with improved caching
                         loadProfilePicture(user);
 
                         hideLoadingState();
@@ -161,31 +207,25 @@ public class AccountsSection extends AppCompatActivity {
     private void loadProfilePicture(Meshans user) {
         String fileName = user.getUserId() + "_profile.png";
 
-        // Set placeholder image initially
-        profilePictureImageView.setImageResource(R.drawable.icon_mesha);
-
-        if (user.getProfilePictureUrl() == null || user.getProfilePictureUrl().equals("to edit")) {
-            // No profile picture to load
-            return;
-        }
-
         // Always try to load cached image first
         Bitmap cachedImage = LocalStorageUtil.loadImage(this, fileName);
         if (cachedImage != null) {
             // Use cached image
-            Log.d("AccountsSection", "Using cached profile image");
             profilePictureImageView.setImageBitmap(cachedImage);
-            return; // Return early if we have a cached image
+            return; // Return early - don't download if we have a cached image
         }
 
-        // If we're here, there's no cached image but we have a URL
-        // Check if we have connectivity before attempting to download
-        if (isNetworkAvailable()) {
-            Log.d("AccountsSection", "Downloading profile image: " + user.getProfilePictureUrl());
-            downloadAndSaveProfilePicture(user.getProfilePictureUrl(), user.getUserId());
+        // Only try to download if there's no cached image and we have a valid URL
+        if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().equals("to edit")) {
+            if (isNetworkAvailable()) {
+                downloadAndSaveProfilePicture(user.getProfilePictureUrl(), user.getUserId());
+            } else {
+                // No network and no cache - use default
+                profilePictureImageView.setImageResource(R.drawable.icon_mesha);
+            }
         } else {
-            Log.d("AccountsSection", "No network connection and no cached image available");
-            // Just keep the placeholder visible
+            // No profile picture URL
+            profilePictureImageView.setImageResource(R.drawable.icon_mesha);
         }
     }
 
@@ -412,15 +452,19 @@ public class AccountsSection extends AppCompatActivity {
                     hideLoadingState();
                     Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show();
                     saveButton.setEnabled(true);
+                    
                     // Reset selected image
                     selectedImageUri = null;
+                    
+                    // Important: set flag to refresh data to verify changes were applied
+                    shouldRefreshData = true;
+                    
                     // Reload user data to reflect changes
-                    loadCurrentUserData();
+                    loadCurrentUserDataFromNetwork();
                 })
                 .addOnFailureListener(e -> {
                     hideLoadingState();
-                    Toast.makeText(this, "Failed to update profile: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Failed to update profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     saveButton.setEnabled(true);
                 });
     }

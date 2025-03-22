@@ -1,12 +1,14 @@
 package com.dzovah.mesha.Activities;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,6 +38,9 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 
 import java.util.List;
 
+import com.bumptech.glide.Glide;
+import com.dzovah.mesha.Methods.Utils.LocalStorageUtil;
+
 public class Dashboard extends AppCompatActivity {
     private static final String TAG = "Dashboard";
     private MeshaDatabase database;
@@ -44,6 +49,7 @@ public class Dashboard extends AppCompatActivity {
     private NavigationView navigationView;
     private ImageButton menuButton;
     private Menu navMenu;
+    private ImageView profileImageView;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,6 +60,7 @@ public class Dashboard extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         menuButton = findViewById(R.id.menuButton);
+        profileImageView = findViewById(R.id.profileImageView);
         LottieAnimationView piechart = findViewById(R.id.piechart);
 
         // Get the navigation menu immediately
@@ -76,14 +83,10 @@ public class Dashboard extends AppCompatActivity {
             }
         });
 
-
-        piechart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Navigate to AnalysisActivity when clicked
-                Intent intent = new Intent(Dashboard.this, AnalysisActivity.class);
-                startActivity(intent);
-            }
+        piechart.setOnClickListener(v -> {
+            // Navigate to AnalysisActivity when clicked
+            Intent intent = new Intent(Dashboard.this, AnalysisActivity.class);
+            startActivity(intent);
         });
 
         // Set up navigation item selection
@@ -108,13 +111,19 @@ public class Dashboard extends AppCompatActivity {
 
         // Check if user is signed in first
         checkUserAndUpdateMenu();
+
+        // Load profile image
+        loadProfileImage();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        loadAccounts(); // Reload accounts when returning to Dashboard
         // Refresh the premium status every time the Dashboard comes to the foreground
         checkUserAndUpdateMenu();
+        // Reload profile image in case it was updated
+        loadProfileImage();
     }
 
     private void checkUserAndUpdateMenu() {
@@ -199,7 +208,7 @@ public class Dashboard extends AppCompatActivity {
         piechartAnimationView.playAnimation();
 
         Quotes quotes = new Quotes();
-        tvQuoteOfTheDay.setText("Quote: " + quotes.presentQuote());
+        tvQuoteOfTheDay.setText(quotes.presentQuote());
 
         RecyclerView rvAccounts = findViewById(R.id.alpha_accounts_recyclerview);
         rvAccounts.setLayoutManager(new LinearLayoutManager(this));
@@ -223,29 +232,27 @@ public class Dashboard extends AppCompatActivity {
     }
 
     private void loadAccounts() {
-        try {
-            MeshaDatabase.databaseWriteExecutor.execute(() -> {
-                try {
-                    List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
-                    runOnUiThread(() -> {
-                        try {
-                            accountAdapter.setAccounts(accounts);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Toast.makeText(this, "Error displaying accounts", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    runOnUiThread(() ->
-                            Toast.makeText(this, "Error loading accounts", Toast.LENGTH_SHORT).show()
-                    );
+        MeshaDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                // Get all accounts
+                List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
+                
+                // Calculate accurate balance for each account
+                for (AlphaAccount account : accounts) {
+                    double calculatedBalance = database.transactionDao().getAlphaAccountBalanceById(account.getAlphaAccountId());
+                    account.setAlphaAccountBalance(calculatedBalance); // Or use setCalculatedBalance if you implemented it
                 }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to access database", Toast.LENGTH_SHORT).show();
-        }
+                
+                // Update UI
+                runOnUiThread(() -> {
+                    accountAdapter.setAccounts(accounts);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(this, 
+                    "Error loading accounts: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void showCreateAccountDialog() {
@@ -260,5 +267,36 @@ public class Dashboard extends AppCompatActivity {
             }
         });
         dialog.show(); // Show the dialog
+    }
+
+    private void loadProfileImage() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            String userId = currentUser.getUid();
+            String fileName = userId + "_profile.png";
+            
+            // Try to load cached image first
+            Bitmap cachedImage = LocalStorageUtil.loadImage(this, fileName);
+            if (cachedImage != null) {
+                // Use cached image
+                profileImageView.setImageBitmap(cachedImage);
+            } else {
+                // Use default image if no cached image is available
+                profileImageView.setImageResource(R.drawable.icon_mesha);
+            }
+            
+            // Add click listener to navigate to account section
+            profileImageView.setOnClickListener(v -> {
+                startActivity(new Intent(Dashboard.this, AccountsSection.class));
+            });
+        } else {
+            // Use default image if user is not logged in
+            profileImageView.setImageResource(R.drawable.icon_mesha);
+            
+            // Add click listener to navigate to sign in
+            profileImageView.setOnClickListener(v -> {
+                startActivity(new Intent(Dashboard.this, SignInActivity.class));
+            });
+        }
     }
 }

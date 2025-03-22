@@ -147,56 +147,5 @@ public class BetaAccountDetailActivity extends AppCompatActivity {
         });
         dialog.show();
     }
-
-    private void createTransaction(double amount, String type, String description) {
-        if (currentBetaAccount == null) {
-            Toast.makeText(this, "Error: Beta account not loaded", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        Transaction newTransaction = new Transaction(
-            currentBetaAccount.getAlphaAccountId(),
-            betaAccountId,
-            1,  // General category
-            description,
-            amount,
-            type.equals("CREDIT") ? TransactionType.CREDIT : TransactionType.DEBIT,
-            System.currentTimeMillis()
-        );
-
-        MeshaDatabase.databaseWriteExecutor.execute(() -> {
-            try {
-                // Insert transaction
-                database.transactionDao().insert(newTransaction);
-                
-                // Update beta account balance
-                double newBetaBalance = currentBetaAccount.getBetaAccountBalance();
-                newBetaBalance += type.equals("CREDIT") ? amount : -amount;
-                currentBetaAccount.setBetaAccountBalance(newBetaBalance);
-                database.betaAccountDao().update(currentBetaAccount);
-
-                // Update alpha account balance
-                AlphaAccount alphaAccount = database.alphaAccountDao()
-                    .getAlphaAccountById(currentBetaAccount.getAlphaAccountId());
-                if (alphaAccount != null) {
-                    double newAlphaBalance = alphaAccount.getAlphaAccountBalance();
-                    newAlphaBalance += type.equals("CREDIT") ? amount : -amount;
-                    alphaAccount.setAlphaAccountBalance(newAlphaBalance);
-                    database.alphaAccountDao().update(alphaAccount);
-                }
-
-                runOnUiThread(() -> {
-                    loadBetaAccountDetails();
-                    loadTransactions();
-                    // Notify the parent AlphaAccountDetailActivity
-                    setResult(RESULT_OK);
-                    Toast.makeText(this, "Transaction added successfully", Toast.LENGTH_SHORT).show();
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "Error adding transaction", Toast.LENGTH_SHORT).show());
-            }
-        });
-    }
   
 } 

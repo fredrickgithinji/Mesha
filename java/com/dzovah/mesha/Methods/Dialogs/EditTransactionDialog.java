@@ -12,6 +12,8 @@ import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
 import com.dzovah.mesha.Database.Entities.Transaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
+import com.dzovah.mesha.Database.Utils.TransactionType;
 import com.dzovah.mesha.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -65,6 +67,22 @@ public class EditTransactionDialog extends Dialog {
 
             try {
                 double amount = Double.parseDouble(amountStr);
+                
+                // Check if it's a debit transaction and would cause negative balance
+                if (transaction.getTransactionType() == TransactionType.DEBIT) {
+                    double currentBalance = betaAccount.getBetaAccountBalance();
+                    double oldAmount = Math.abs(transaction.getTransactionAmount());
+                    
+                    // Calculate the additional withdrawal
+                    double additionalWithdrawal = amount - oldAmount;
+                    
+                    // If additional withdrawal would cause negative balance
+                    if (additionalWithdrawal > 0 && additionalWithdrawal > currentBalance) {
+                        showAlternativeAccountDialog(additionalWithdrawal, description);
+                        return;
+                    }
+                }
+                
                 updateTransaction(amount, description);
                 dismiss();
             } catch (NumberFormatException e) {
@@ -166,5 +184,44 @@ public class EditTransactionDialog extends Dialog {
                 );
             }
         });
+    }
+
+    private void showAlternativeAccountDialog(double additionalAmount, String description) {
+        AlternativeBetaAccountDialog dialog = new AlternativeBetaAccountDialog(
+            context, database, betaAccount, additionalAmount, description);
+        
+        dialog.setOnTransactionCompletedListener(() -> {
+            // After funds transfer completed, refresh beta account data and continue
+            MeshaDatabase.databaseWriteExecutor.execute(() -> {
+                try {
+                    // Refresh beta account data
+                    BetaAccount refreshedAccount = database.betaAccountDao()
+                        .getBetaAccountById(betaAccount.getBetaAccountId());
+                    
+                    if (refreshedAccount != null) {
+                        // Update our local copy with refreshed data
+                        betaAccount.setBetaAccountBalance(refreshedAccount.getBetaAccountBalance());
+                        
+                        // Calculate total amount from form
+                        double totalAmount = Double.parseDouble(
+                            ((EditText)findViewById(R.id.etTransactionAmount)).getText().toString());
+                        
+                        // Now proceed with the original transaction update
+                        ((android.app.Activity) context).runOnUiThread(() -> {
+                            // Proceed with updating transaction now that funds are available
+                            updateTransaction(totalAmount, description);
+                            dismiss(); // Now we can dismiss
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    ((android.app.Activity) context).runOnUiThread(() -> {
+                        Toast.makeText(context, "Error refreshing account data", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        });
+        
+        dialog.show();
     }
 } 

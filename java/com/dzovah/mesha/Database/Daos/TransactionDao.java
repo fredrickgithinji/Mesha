@@ -42,7 +42,6 @@ public interface TransactionDao {
     "FROM Transactions WHERE Beta_account_id = :betaAccountId")
 double getBetaAccountBalance(int betaAccountId);
 
-
     // Retrieve transactions within a time range for a Beta Account
     @Query("SELECT * FROM Transactions WHERE Beta_account_id = :betaAccountId AND Entry_time BETWEEN :startTime AND :endTime ORDER BY Entry_time DESC")
     List<Transaction> getTransactionsByTimeRange(int betaAccountId, long startTime, long endTime);
@@ -57,5 +56,15 @@ double getBetaAccountBalance(int betaAccountId);
 
     @Query("SELECT * FROM Transactions ORDER BY Entry_time DESC")
     List<Transaction> getAllTransactionsByEntryTime();
+
+    @Query("SELECT SUM(CASE WHEN Transaction_type = 'CREDIT' THEN Transaction_amount ELSE -Transaction_amount END) " +
+            "FROM Transactions")
+    double getNetBalance();
+
+    // In TransactionDao.java
+@Query("SELECT (SELECT COALESCE(SUM(Transaction_amount), 0) FROM transactions WHERE Alpha_account_id = :alphaId AND Transaction_type = 'CREDIT') - " +
+       "(SELECT COALESCE(SUM(Transaction_amount), 0) FROM transactions WHERE Alpha_account_id = :alphaId AND Transaction_type = 'DEBIT') " +
+       "AS balance")
+double getAlphaAccountBalanceById(int alphaId);
 
 }
