@@ -67,18 +67,28 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
     }
 
     private void loadAlphaAccountDetails() {
+        if (alphaAccountId == -1) return;
+        
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
+                // Get the account
                 AlphaAccount account = database.alphaAccountDao().getAlphaAccountById(alphaAccountId);
-                runOnUiThread(() -> {
-                    if (account != null) {
+                
+                if (account != null) {
+                    // Calculate accurate balance using the transaction DAO method
+                    double calculatedBalance = database.transactionDao().getAlphaAccountBalanceById(alphaAccountId);
+                    // Update the account with the calculated balance
+                    account.setAlphaAccountBalance(calculatedBalance);
+                    
+                    // Use existing UI update code
+                    runOnUiThread(() -> {
                         TextView tvAlphaName = findViewById(R.id.tvAlphaAccountName);
                         TextView tvAlphaBalance = findViewById(R.id.tvAlphaAccountBalance);
                         ImageView ivAlphaIcon = findViewById(R.id.ivAlphaAccountIcon);
-    
+
                         tvAlphaName.setText(account.getAlphaAccountName());
                         tvAlphaBalance.setText(CurrencyFormatter.format(account.getAlphaAccountBalance()));
-    
+
                         try {
                             String iconPath = account.getAlphaAccountIcon().replace("Assets/", "");
                             InputStream is = getAssets().open(iconPath);
@@ -87,11 +97,13 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                    } else {
+                    });
+                } else {
+                    runOnUiThread(() -> {
                         Toast.makeText(this, "Account not found", Toast.LENGTH_SHORT).show();
                         finish();
-                    }
-                });
+                    });
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
@@ -101,6 +113,13 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void updateUI(AlphaAccount account) {
+    // Update UI elements with fresh account data
+    TextView tvBalance = findViewById(R.id.tvAlphaAccountBalance);
+    tvBalance.setText(CurrencyFormatter.format(account.getAlphaAccountBalance()));
+    // Update other UI elements...
+}
 
     private void loadBetaAccounts() {
         try {

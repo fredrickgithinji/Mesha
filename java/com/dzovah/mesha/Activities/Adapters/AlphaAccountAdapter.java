@@ -57,7 +57,6 @@ public class AlphaAccountAdapter extends RecyclerView.Adapter<AlphaAccountAdapte
     public void onBindViewHolder(AccountViewHolder holder, int position) {
         AlphaAccount account = accounts.get(position);
         holder.tvAccountName.setText(account.getAlphaAccountName());
-        
         holder.tvAccountBalance.setText(CurrencyFormatter.format(account.getAlphaAccountBalance()));
 
         // Load icon from assets

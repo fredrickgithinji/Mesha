@@ -232,29 +232,27 @@ public class Dashboard extends AppCompatActivity {
     }
 
     private void loadAccounts() {
-        try {
-            MeshaDatabase.databaseWriteExecutor.execute(() -> {
-                try {
-                    List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
-                    runOnUiThread(() -> {
-                        try {
-                            accountAdapter.setAccounts(accounts);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Toast.makeText(this, "Error displaying accounts", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    runOnUiThread(() ->
-                            Toast.makeText(this, "Error loading accounts", Toast.LENGTH_SHORT).show()
-                    );
+        MeshaDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                // Get all accounts
+                List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
+                
+                // Calculate accurate balance for each account
+                for (AlphaAccount account : accounts) {
+                    double calculatedBalance = database.transactionDao().getAlphaAccountBalanceById(account.getAlphaAccountId());
+                    account.setAlphaAccountBalance(calculatedBalance); // Or use setCalculatedBalance if you implemented it
                 }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to access database", Toast.LENGTH_SHORT).show();
-        }
+                
+                // Update UI
+                runOnUiThread(() -> {
+                    accountAdapter.setAccounts(accounts);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(this, 
+                    "Error loading accounts: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void showCreateAccountDialog() {

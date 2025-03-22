@@ -501,6 +501,7 @@ public class AccountsSection extends AppCompatActivity {
         builder.show();
     }
 
+
     private void showLoadingState(String message) {
         progressBar.setVisibility(View.VISIBLE);
         statusTextView.setText(message);

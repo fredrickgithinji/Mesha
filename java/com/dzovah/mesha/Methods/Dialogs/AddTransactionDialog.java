@@ -64,17 +64,17 @@ public class AddTransactionDialog extends Dialog {
             try {
                 double amount = Double.parseDouble(amountStr);
                 
-                // Add validation for negative balance
+                // For DEBIT transactions, check if it would cause a negative balance
                 if (type.equals("DEBIT")) {
                     double currentBalance = betaAccount.getBetaAccountBalance();
                     if (amount > currentBalance) {
-                        Toast.makeText(context, 
-                            "Insufficient balance. Available: " + CurrencyFormatter.format(currentBalance), 
-                            Toast.LENGTH_SHORT).show();
+                        // Show alternative account dialog
+                        showAlternativeAccountDialog(amount, description);
                         return;
                     }
                 }
                 
+                // If no negative balance or CREDIT transaction, proceed normally
                 createTransaction(amount, type, description);
                 dismiss();
             } catch (NumberFormatException e) {
@@ -98,18 +98,18 @@ public class AddTransactionDialog extends Dialog {
 
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                // Insert transaction
+                // 1. Insert the transaction
                 database.transactionDao().insert(newTransaction);
                 
-                // Update beta account balance
-                double newBetaBalance = betaAccount.getBetaAccountBalance();
+                // 2. Update Beta account balance - ensuring we get the latest data
+                BetaAccount currentBeta = database.betaAccountDao().getBetaAccountById(betaAccount.getBetaAccountId());
+                double newBetaBalance = currentBeta.getBetaAccountBalance();
                 newBetaBalance += type.equals("CREDIT") ? amount : -amount;
-                betaAccount.setBetaAccountBalance(newBetaBalance);
-                database.betaAccountDao().update(betaAccount);
+                currentBeta.setBetaAccountBalance(newBetaBalance);
+                database.betaAccountDao().update(currentBeta);
 
-                // Update alpha account balance
-                AlphaAccount alphaAccount = database.alphaAccountDao()
-                    .getAlphaAccountById(betaAccount.getAlphaAccountId());
+                // 3. Update Alpha account balance - ensuring we get the latest data
+                AlphaAccount alphaAccount = database.alphaAccountDao().getAlphaAccountById(currentBeta.getAlphaAccountId());
                 if (alphaAccount != null) {
                     double newAlphaBalance = alphaAccount.getAlphaAccountBalance();
                     newAlphaBalance += type.equals("CREDIT") ? amount : -amount;
@@ -117,18 +117,55 @@ public class AddTransactionDialog extends Dialog {
                     database.alphaAccountDao().update(alphaAccount);
                 }
 
-                if (listener != null) {
-                    ((android.app.Activity) context).runOnUiThread(() -> {
+                // 4. Notify the UI on the main thread
+                ((android.app.Activity) context).runOnUiThread(() -> {
+                    if (listener != null) {
                         listener.onTransactionAdded();
-                        Toast.makeText(context, "Transaction added successfully", Toast.LENGTH_SHORT).show();
-                    });
-                }
+                    }
+                    Toast.makeText(context, "Transaction added successfully", Toast.LENGTH_SHORT).show();
+                });
             } catch (Exception e) {
                 e.printStackTrace();
-                ((android.app.Activity) context).runOnUiThread(() -> 
-                    Toast.makeText(context, "Error adding transaction", Toast.LENGTH_SHORT).show()
-                );
+                ((android.app.Activity) context).runOnUiThread(() -> {
+                    Toast.makeText(context, "Error adding transaction: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
             }
         });
+    }
+
+    // Add this new method to handle insufficient funds
+    private void showAlternativeAccountDialog(double amount, String description) {
+        AlternativeBetaAccountDialog dialog = new AlternativeBetaAccountDialog(
+            context, database, betaAccount, amount, description);
+        
+        dialog.setOnTransactionCompletedListener(() -> {
+            // After funds transfer completed, refresh beta account data and continue
+            MeshaDatabase.databaseWriteExecutor.execute(() -> {
+                try {
+                    // Refresh beta account data
+                    BetaAccount refreshedAccount = database.betaAccountDao()
+                        .getBetaAccountById(betaAccount.getBetaAccountId());
+                    
+                    if (refreshedAccount != null) {
+                        // Update our local copy with refreshed data
+                        betaAccount.setBetaAccountBalance(refreshedAccount.getBetaAccountBalance());
+                        
+                        // Now proceed with the original transaction
+                        ((android.app.Activity) context).runOnUiThread(() -> {
+                            // Proceed with original transaction now that funds are available
+                            createTransaction(amount, "DEBIT", description);
+                            dismiss(); // Now we can dismiss
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    ((android.app.Activity) context).runOnUiThread(() -> {
+                        Toast.makeText(context, "Error refreshing account data", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        });
+        
+        dialog.show();
     }
 } 

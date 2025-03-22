@@ -61,4 +61,10 @@ double getBetaAccountBalance(int betaAccountId);
             "FROM Transactions")
     double getNetBalance();
 
+    // In TransactionDao.java
+@Query("SELECT (SELECT COALESCE(SUM(Transaction_amount), 0) FROM transactions WHERE Alpha_account_id = :alphaId AND Transaction_type = 'CREDIT') - " +
+       "(SELECT COALESCE(SUM(Transaction_amount), 0) FROM transactions WHERE Alpha_account_id = :alphaId AND Transaction_type = 'DEBIT') " +
+       "AS balance")
+double getAlphaAccountBalanceById(int alphaId);
+
 }
