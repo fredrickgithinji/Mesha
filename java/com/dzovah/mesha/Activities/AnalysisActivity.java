@@ -1,91 +1,119 @@
 package com.dzovah.mesha.Activities;
 
 import android.os.Bundle;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.dzovah.mesha.Activities.Adapters.AnalysisTransactionAdapter;
+import com.dzovah.mesha.Database.Entities.AlphaAccount;
+import com.dzovah.mesha.Database.Entities.BetaAccount;
 import com.dzovah.mesha.Database.Entities.Transaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import com.dzovah.mesha.R;
-import com.dzovah.mesha.Activities.Adapters.TransactionAdapter;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class AnalysisActivity extends AppCompatActivity {
-
-    private RecyclerView recyclerView;
-    private TransactionAdapter transactionAdapter;
-    private List<Transaction> transactionsList;
+    private MeshaDatabase database;
+    private AnalysisTransactionAdapter adapter;
+    private TextView tvNetBalance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_analysis);
 
-        recyclerView = findViewById(R.id.rvTransactions);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        database = MeshaDatabase.Get_database(this);
+        initializeViews();
+        loadTransactions();
+    }
 
-        // Initialize adapter with context
-        transactionAdapter = new TransactionAdapter(this);
-        recyclerView.setAdapter(transactionAdapter);
+    private void initializeViews() {
+        // Set default profile icon
+        ImageView analysisIcon = findViewById(R.id.AnalysisIcon);
+        analysisIcon.setImageResource(R.drawable.default_profile);
+        tvNetBalance = findViewById(R.id.CurrentBalance);
 
-        // Fetch transactions from database
-        new Thread(() -> {
-            transactionsList = MeshaDatabase.Get_database(this)
-                    .transactionDao()
-                    .getAllTransactionsByEntryTime();
+        RecyclerView rvTransactions = findViewById(R.id.rvTransactions);
+        rvTransactions.setLayoutManager(new LinearLayoutManager(this));
+        
+        adapter = new AnalysisTransactionAdapter(this);
+        adapter.setOnTransactionClickListener(this::showTransactionDetails);
+        rvTransactions.setAdapter(adapter);
+    }
 
-            // Update UI on the main thread
-            runOnUiThread(() -> transactionAdapter.setTransactions(transactionsList));
-        }).start();
+    private void loadTransactions() {
+        MeshaDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                List<Transaction> transactions = database.transactionDao().getAllTransactionsByEntryTime();
+                double netBalance = database.transactionDao().getNetBalance();
+
+                runOnUiThread(() -> {
+                    adapter.setTransactions(transactions);
+                    tvNetBalance.setText(CurrencyFormatter.format(netBalance));
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> 
+                    Toast.makeText(this, "Error loading transactions", Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+    private void showTransactionDetails(Transaction transaction) {
+        MeshaDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                // Get Alpha and Beta account details
+                BetaAccount betaAccount = database.betaAccountDao()
+                    .getBetaAccountById(transaction.getBetaAccountId());
+                AlphaAccount alphaAccount = database.alphaAccountDao()
+                    .getAlphaAccountById(transaction.getAlphaAccountId());
+
+                if (betaAccount != null && alphaAccount != null) {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
+                    String date = dateFormat.format(new Date(transaction.getEntryTime()));
+
+                    String details = String.format(
+                        "Amount: %s\n\n" +
+                        "Description: %s\n\n" +
+                        "Date: %s\n\n" +
+                        "Alpha Account: %s\n" +
+                        "Beta Account: %s\n\n" +
+                        "Type: %s",
+                        CurrencyFormatter.format(Math.abs(transaction.getTransactionAmount())),
+                        transaction.getTransactionDescription(),
+                        date,
+                        alphaAccount.getAlphaAccountName(),
+                        betaAccount.getBetaAccountName(),
+                        transaction.getTransactionAmount() > 0 ? "Credit" : "Debit"
+                    );
+
+                    runOnUiThread(() -> {
+                        new MaterialAlertDialogBuilder(this)
+                            .setTitle("Transaction Details")
+                            .setMessage(details)
+                            .setPositiveButton("Close", null)
+                            .show();
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> 
+                    Toast.makeText(this, "Error loading transaction details", Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
     }
 }
- /* The crash is caused by a **NullPointerException** in your `TransactionAdapter` at **line 80**. The error indicates that `betaAccountIcon` is `null`, and you're trying to call:
 
-        ```java
-betaAccountIcon.replace("Assets/", "");
-```
-on a `null` value.
-
----
-
-        ## **🔥 How to Fix It**
-        ### **Option 1: Ensure `betaAccountIcon` is Initialized**
-Modify `onBindViewHolder()` in `TransactionAdapter.java`:
-
-        ```java
-if (betaAccountIcon != null) {
-        try {
-String iconPath = betaAccountIcon.replace("Assets/", ""); // ✅ Prevent crash
-InputStream is = context.getAssets().open(iconPath);
-        holder.transaction_icon.setImageBitmap(BitmapFactory.decodeStream(is));
-        is.close();
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-            } else {
-            holder.transaction_icon.setImageResource(R.drawable.default_icon); // ✅ Provide a fallback icon
-}
-        ```
-        🔹 **What This Fix Does:**
-        - If `betaAccountIcon` is `null`, it skips the `replace()` function to prevent a crash.
-- Instead, it sets a **default icon** (`R.drawable.default_icon` → Replace with your actual fallback icon).
-
-        ---
-
-        ### **Option 2: Ensure `setBetaAccountIcon(String icon)` is Called**
-In `AnalysisActivity.java`, **before setting the adapter**, make sure you're setting a proper icon:
-
-        ```java
-transactionAdapter.setBetaAccountIcon("Assets/default_icon.png"); // Replace with actual path
-```
-
-        ---
-
-        ### **🚀 Summary**
-        - The crash happens because `betaAccountIcon` is `null`.
-        - **Fix 1:** Check if `betaAccountIcon` is `null` before calling `replace()`.
-        - **Fix 2:** Ensure `setBetaAccountIcon()` is called before binding transactions.
-
-Try these fixes and let me know if the issue persists! 🚀
-
-  */

@@ -12,6 +12,7 @@ import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
 import com.dzovah.mesha.Database.Entities.Transaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import com.dzovah.mesha.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -64,8 +65,26 @@ public class EditTransactionDialog extends Dialog {
             }
 
             try {
-                double amount = Double.parseDouble(amountStr);
-                updateTransaction(amount, description);
+                double newAmount = Double.parseDouble(amountStr);
+                
+                // Add validation for negative balance when editing a debit transaction
+                if (transaction.getTransactionAmount() < 0) { // If it's a debit transaction
+                    double currentBalance = betaAccount.getBetaAccountBalance();
+                    double oldAmount = Math.abs(transaction.getTransactionAmount());
+                    
+                    // Calculate the additional amount being withdrawn
+                    double additionalWithdrawal = newAmount - oldAmount;
+                    
+                    // Check if the additional withdrawal would cause negative balance
+                    if (additionalWithdrawal > 0 && additionalWithdrawal > currentBalance) {
+                        Toast.makeText(context, 
+                            "Insufficient balance. Available: " + CurrencyFormatter.format(currentBalance), 
+                            Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+                
+                updateTransaction(newAmount, description);
                 dismiss();
             } catch (NumberFormatException e) {
                 Toast.makeText(context, "Invalid amount", Toast.LENGTH_SHORT).show();

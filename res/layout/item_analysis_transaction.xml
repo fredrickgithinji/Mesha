@@ -44,7 +44,7 @@
                 android:textStyle="bold"/>
 
             <TextView
-                android:id="@+id/tvTransactionTime"
+                android:id="@+id/tvBetaAccountName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
@@ -71,4 +71,4 @@
 
     </LinearLayout>
 
-</com.google.android.material.card.MaterialCardView>
+</com.google.android.material.card.MaterialCardView> 

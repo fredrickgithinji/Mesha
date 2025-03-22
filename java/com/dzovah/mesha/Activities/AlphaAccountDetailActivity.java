@@ -50,7 +50,7 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
 
     private void initializeViews() {
         LottieAnimationView bubblesAnimationView = findViewById(R.id.bubbles);
-        LottieAnimationView piechartAnimationView = findViewById(R.id.piechart);
+        LottieAnimationView piechartAnimationView = findViewById(R.id.money);
         FloatingActionButton fabAddBeta = findViewById(R.id.fabAddBetaAccount);
 
         bubblesAnimationView.playAnimation();

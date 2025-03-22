@@ -16,6 +16,7 @@ import com.dzovah.mesha.Database.Entities.Transaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Utils.TransactionType;
 import com.dzovah.mesha.R;
+import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 
 public class AddTransactionDialog extends Dialog {
     private final Context context;
@@ -62,6 +63,18 @@ public class AddTransactionDialog extends Dialog {
 
             try {
                 double amount = Double.parseDouble(amountStr);
+                
+                // Add validation for negative balance
+                if (type.equals("DEBIT")) {
+                    double currentBalance = betaAccount.getBetaAccountBalance();
+                    if (amount > currentBalance) {
+                        Toast.makeText(context, 
+                            "Insufficient balance. Available: " + CurrencyFormatter.format(currentBalance), 
+                            Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+                
                 createTransaction(amount, type, description);
                 dismiss();
             } catch (NumberFormatException e) {
