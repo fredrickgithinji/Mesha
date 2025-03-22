@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name" translatable="false">Mesha</string>
+    <string name="Launcher_quote">Ili usimamia mabilioni\nLazima kwanza usimamia senti.</string>
+    <string name="Account_balance">Salio: Ksh 0.00</string>
+    <string name="Transaction_description">Maelezo ya Muamala</string>
+    <string name="Transaction_balance">Ksh 0.00</string>
+    <string name="airtelmoney" translatable="false">AirtelMoney</string>
+    <string name="paypal" translatable="false">PayPal</string>
+    <string name="crypto" translatable="false">Crypto</string>
+    <string name="money_in">Pesa Zinazoingia</string>
+    <string name="money_out">Pesa Zinazotoka</string>
+    <string name="create_pin_title">Unda PIN</string>
+    <string name="create_pin_instruction">Ingiza PIN ya tarakimu 6</string>
+    <string name="confirm_pin_title">Thibitisha PIN</string>
+    <string name="confirm_pin_instruction">Ingiza tena PIN yako kuthibitisha</string>
+    <string name="enter_pin_title">Ingiza PIN</string>
+    <string name="enter_pin_instruction">Ingiza PIN yako kuendelea</string>
+    <string name="enter_pin_hint">Ingiza PIN</string>
+    <string name="confirm_pin_hint">Thibitisha PIN</string>
+    <string name="save_pin">Hifadhi PIN</string>
+    <string name="confirm_pin">Thibitisha</string>
+    <string name="pin_saved_success">PIN imehifadhiwa kwa mafanikio</string>
+    <string name="pins_do_not_match">PIN hazifanani</string>
+    <string name="pin_length_error">PIN lazima iwe tarakimu 6</string>
+    <string name="pin_numeric_error">PIN lazima iwe na nambari pekee</string>
+    <string name="incorrect_pin">PIN si sahihi</string>
+    <string name="create_account">Fungua Akaunti</string>
+    <string name="delete_account">Futa Akaunti</string>
+    <string name="account_name">Jina la Akaunti</string>
+    <string name="account_type">Aina ya Akaunti</string>
+    <string name="create">Unda</string>
+    <string name="cancel">Ghairi</string>
+    <string name="delete">Futa</string>
+    <string name="error_empty_name">Tafadhali ingiza jina la akaunti</string>
+    <string name="account_created">Akaunti imeundwa kwa mafanikio</string>
+    <string name="error_creating_account">Hitilafu katika kuunda akaunti</string>
+    <string name="account_deleted">Akaunti imefutwa kwa mafanikio</string>
+    <string name="error_deleting_account">Hitilafu katika kufuta akaunti</string>
+    <string name="delete_account_confirmation">Je, una uhakika unataka kufuta %s? Hii itafuta akaunti ndogo na miamala yote.</string>
+    <string name="total_balance">Jumla ya Salio</string>
+    <string name="your_accounts">Akaunti Zako</string>
+    <string name="no_accounts_yet">Bado huna akaunti. Bofya + kuongeza akaunti yako ya kwanza.</string>
+    <string name="add_account">Unda Akaunti Mpya</string>
+    <string name="add_beta_account">Unda Akaunti Mpya ya Beta</string>
+    <string name="navigation_drawer_open">Fungua menyu ya urambazaji</string>
+    <string name="navigation_drawer_close">Funga menyu ya urambazaji</string>
+</resources>

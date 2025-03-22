@@ -1,12 +1,12 @@
 <resources>
-    <string name="app_name">Mesha</string>
+    <string name="app_name" translatable="false">Mesha</string>
     <string name="Launcher_quote">To manage billions\nYou must first of all manage the cents.</string>
     <string name="Account_balance">Balance: Ksh 0.00</string>
     <string name="Transaction_description">Transaction Description</string>
     <string name="Transaction_balance">Ksh 0.00</string>
-    <string name="airtelmoney">AirtelMoney</string>
-    <string name="paypal">PayPal</string>
-    <string name="crypto">Crypto</string>
+    <string name="airtelmoney" translatable="false">AirtelMoney</string>
+    <string name="paypal" translatable="false">PayPal</string>
+    <string name="crypto" translatable="false">Crypto</string>
     <string name="money_in">Money in</string>
     <string name="money_out">Money out</string>
     <string name="create_pin_title">Create PIN</string>
