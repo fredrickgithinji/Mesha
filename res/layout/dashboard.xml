@@ -32,23 +32,26 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <!-- Quote of the Day - Repositioned next to the profile image -->
+
+            <!-- Menu button in top right corner -->
+
             <TextView
                 android:id="@+id/tvQuoteOfTheDay"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_width="263dp"
+                android:layout_height="47dp"
                 android:layout_marginStart="12dp"
                 android:layout_marginEnd="12dp"
+                android:ellipsize="end"
+                android:maxLines="5"
                 android:text=""
                 android:textColor="#ADBDC5"
                 android:textSize="14sp"
-                android:maxLines="2"
-                android:ellipsize="end"
-                app:layout_constraintStart_toEndOf="@+id/profileImageView"
+                app:layout_constraintBottom_toBottomOf="@+id/profileImageView"
                 app:layout_constraintEnd_toStartOf="@+id/menuButton"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/profileImageView"
                 app:layout_constraintTop_toTopOf="@+id/profileImageView"
-                app:layout_constraintBottom_toBottomOf="@+id/profileImageView" />
-
-            <!-- Menu button in top right corner -->
+                app:layout_constraintVertical_bias="1.0" />
 
             <ImageButton
                 android:id="@+id/menuButton"

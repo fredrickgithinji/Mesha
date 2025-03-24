@@ -6,7 +6,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
+import android.app.Activity;
 
 import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
@@ -16,6 +18,10 @@ import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import com.dzovah.mesha.Database.Utils.TransactionType;
 import com.dzovah.mesha.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.dzovah.mesha.Database.Entities.Category;
+import com.dzovah.mesha.Activities.Adapters.CategorySpinnerAdapter;
+
+import java.util.List;
 
 public class EditTransactionDialog extends Dialog {
     private final Context context;
@@ -23,6 +29,8 @@ public class EditTransactionDialog extends Dialog {
     private final Transaction transaction;
     private final BetaAccount betaAccount;
     private OnTransactionEditedListener listener;
+    private Spinner categorySpinner;
+    private List<Category> categories;
 
     public interface OnTransactionEditedListener {
         void onTransactionEdited();
@@ -55,6 +63,10 @@ public class EditTransactionDialog extends Dialog {
         // Set current values
         etAmount.setText(String.valueOf(Math.abs(transaction.getTransactionAmount())));
         etDescription.setText(transaction.getTransactionDescription());
+
+        // Initialize category spinner
+        categorySpinner = dialogView.findViewById(R.id.categorySpinner);
+        loadCategories();
 
         btnUpdate.setOnClickListener(v -> {
             String amountStr = etAmount.getText().toString();
@@ -105,7 +117,31 @@ public class EditTransactionDialog extends Dialog {
         btnCancel.setOnClickListener(v -> dismiss());
     }
 
+    private void loadCategories() {
+        MeshaDatabase.databaseWriteExecutor.execute(() -> {
+            categories = database.categoryDao().getAllCategories();
+            ((Activity) context).runOnUiThread(() -> {
+                CategorySpinnerAdapter adapter = new CategorySpinnerAdapter(context, categories);
+                categorySpinner.setAdapter(adapter);
+                
+                // Set selected category
+                for (int i = 0; i < categories.size(); i++) {
+                    if (categories.get(i).getCategoryId() == transaction.getCategoryId()) {
+                        categorySpinner.setSelection(i);
+                        break;
+                    }
+                }
+            });
+        });
+    }
+
     private void updateTransaction(double newAmount, String newDescription) {
+        Category selectedCategory = (Category) categorySpinner.getSelectedItem();
+        
+        transaction.setCategoryId(selectedCategory != null ? selectedCategory.getCategoryId() : 1);
+        transaction.setTransactionAmount(newAmount);
+        transaction.setTransactionDescription(newDescription);
+
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 // Calculate the difference in amount
@@ -137,14 +173,14 @@ public class EditTransactionDialog extends Dialog {
                 }
 
                 if (listener != null) {
-                    ((android.app.Activity) context).runOnUiThread(() -> {
+                    ((Activity) context).runOnUiThread(() -> {
                         listener.onTransactionEdited();
                         Toast.makeText(context, "Transaction updated successfully", Toast.LENGTH_SHORT).show();
                     });
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                ((android.app.Activity) context).runOnUiThread(() -> 
+                ((Activity) context).runOnUiThread(() -> 
                     Toast.makeText(context, "Error updating transaction", Toast.LENGTH_SHORT).show()
                 );
             }
@@ -172,14 +208,14 @@ public class EditTransactionDialog extends Dialog {
                 }
 
                 if (listener != null) {
-                    ((android.app.Activity) context).runOnUiThread(() -> {
+                    ((Activity) context).runOnUiThread(() -> {
                         listener.onTransactionDeleted();
                         Toast.makeText(context, "Transaction deleted successfully", Toast.LENGTH_SHORT).show();
                     });
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                ((android.app.Activity) context).runOnUiThread(() -> 
+                ((Activity) context).runOnUiThread(() -> 
                     Toast.makeText(context, "Error deleting transaction", Toast.LENGTH_SHORT).show()
                 );
             }
@@ -207,7 +243,7 @@ public class EditTransactionDialog extends Dialog {
                             ((EditText)findViewById(R.id.etTransactionAmount)).getText().toString());
                         
                         // Now proceed with the original transaction update
-                        ((android.app.Activity) context).runOnUiThread(() -> {
+                        ((Activity) context).runOnUiThread(() -> {
                             // Proceed with updating transaction now that funds are available
                             updateTransaction(totalAmount, description);
                             dismiss(); // Now we can dismiss
@@ -215,7 +251,7 @@ public class EditTransactionDialog extends Dialog {
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    ((android.app.Activity) context).runOnUiThread(() -> {
+                    ((Activity) context).runOnUiThread(() -> {
                         Toast.makeText(context, "Error refreshing account data", Toast.LENGTH_SHORT).show();
                     });
                 }

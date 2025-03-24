@@ -8,7 +8,9 @@ import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.Toast;
+import android.app.Activity;
 
 import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
@@ -17,12 +19,18 @@ import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Utils.TransactionType;
 import com.dzovah.mesha.R;
 import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
+import com.dzovah.mesha.Database.Entities.Category;
+import com.dzovah.mesha.Activities.Adapters.CategorySpinnerAdapter;
+
+import java.util.List;
 
 public class AddTransactionDialog extends Dialog {
     private final Context context;
     private final MeshaDatabase database;
     private final BetaAccount betaAccount;
     private OnTransactionAddedListener listener;
+    private Spinner categorySpinner;
+    private List<Category> categories;
 
     public interface OnTransactionAddedListener {
         void onTransactionAdded();
@@ -50,6 +58,10 @@ public class AddTransactionDialog extends Dialog {
         RadioGroup rgTransactionType = dialogView.findViewById(R.id.rgTransactionType);
         Button btnAdd = dialogView.findViewById(R.id.btnAdd);
         Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+        // Initialize category spinner
+        categorySpinner = dialogView.findViewById(R.id.categorySpinner);
+        loadCategories();
 
         btnAdd.setOnClickListener(v -> {
             String amountStr = etAmount.getText().toString();
@@ -85,11 +97,23 @@ public class AddTransactionDialog extends Dialog {
         btnCancel.setOnClickListener(v -> dismiss());
     }
 
+    private void loadCategories() {
+        MeshaDatabase.databaseWriteExecutor.execute(() -> {
+            categories = database.categoryDao().getAllCategories();
+            ((Activity) context).runOnUiThread(() -> {
+                CategorySpinnerAdapter adapter = new CategorySpinnerAdapter(context, categories);
+                categorySpinner.setAdapter(adapter);
+            });
+        });
+    }
+
     private void createTransaction(double amount, String type, String description) {
+        Category selectedCategory = (Category) categorySpinner.getSelectedItem();
+        
         Transaction newTransaction = new Transaction(
             betaAccount.getAlphaAccountId(),
             betaAccount.getBetaAccountId(),
-            1,  // General category
+            selectedCategory != null ? selectedCategory.getCategoryId() : 1, // Default to General category
             description,
             amount,
             type.equals("CREDIT") ? TransactionType.CREDIT : TransactionType.DEBIT,
@@ -118,7 +142,7 @@ public class AddTransactionDialog extends Dialog {
                 }
 
                 // 4. Notify the UI on the main thread
-                ((android.app.Activity) context).runOnUiThread(() -> {
+                ((Activity) context).runOnUiThread(() -> {
                     if (listener != null) {
                         listener.onTransactionAdded();
                     }
@@ -126,7 +150,7 @@ public class AddTransactionDialog extends Dialog {
                 });
             } catch (Exception e) {
                 e.printStackTrace();
-                ((android.app.Activity) context).runOnUiThread(() -> {
+                ((Activity) context).runOnUiThread(() -> {
                     Toast.makeText(context, "Error adding transaction: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
             }
@@ -151,7 +175,7 @@ public class AddTransactionDialog extends Dialog {
                         betaAccount.setBetaAccountBalance(refreshedAccount.getBetaAccountBalance());
                         
                         // Now proceed with the original transaction
-                        ((android.app.Activity) context).runOnUiThread(() -> {
+                        ((Activity) context).runOnUiThread(() -> {
                             // Proceed with original transaction now that funds are available
                             createTransaction(amount, "DEBIT", description);
                             dismiss(); // Now we can dismiss
@@ -159,7 +183,7 @@ public class AddTransactionDialog extends Dialog {
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    ((android.app.Activity) context).runOnUiThread(() -> {
+                    ((Activity) context).runOnUiThread(() -> {
                         Toast.makeText(context, "Error refreshing account data", Toast.LENGTH_SHORT).show();
                     });
                 }

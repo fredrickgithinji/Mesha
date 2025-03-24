@@ -70,6 +70,20 @@
                 android:backgroundTint="@color/silver"/>
         </com.google.android.material.textfield.TextInputLayout>
 
+        <Spinner
+            android:id="@+id/categorySpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:prompt="@string/select_category" />
+
+        <Spinner
+            android:id="@+id/currencySpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:prompt="@string/select_currency" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

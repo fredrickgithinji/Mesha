@@ -62,10 +62,10 @@ public abstract class MeshaDatabase extends RoomDatabase {
                 CategoryDao dao = INSTANCE.categoryDao();
                 
                 // Insert default categories
-                Category general = new Category("General", "general_icon.png");
-                Category food = new Category("Food", "food_icon.png");
-                Category transport = new Category("Transport", "transport_icon.png");
-                Category utilities = new Category("Utilities", "utilities_icon.png");
+                Category general = new Category();
+                Category food = new Category();
+                Category transport = new Category();
+                Category utilities = new Category();
                 
                 dao.insert(general);  // This will be ID 1
                 dao.insert(food);     // This will be ID 2

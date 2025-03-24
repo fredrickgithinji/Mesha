@@ -94,7 +94,11 @@ public class Dashboard extends AppCompatActivity {
             int id = item.getItemId();
             if (id == R.id.nav_account) {
                 startActivity(new Intent(Dashboard.this, AccountsSection.class));
-            } else if (id == R.id.nav_signin) {
+            }
+            else if (id == R.id.nav_userpref) {
+                startActivity(new Intent(Dashboard.this, UserPrefsActivity.class));
+            }
+            else if (id == R.id.nav_signin) {
                 startActivity(new Intent(Dashboard.this, SignInActivity.class));
             } else if (id == R.id.nav_logout) {
                 FirebaseAuth.getInstance().signOut();

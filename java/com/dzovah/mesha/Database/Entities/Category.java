@@ -20,7 +20,7 @@ public class Category {
     private String description;
 
     // Constructor
-    public Category(String category, String description) {
+    public Category() {
         this.category = category;
         this.description = description;
     }

@@ -80,8 +80,8 @@ public class MeshansRepository {
 
             // Step 2: Read from Firebase
             firebaseDao.readFromDatabase(userId)
-                    .addOnSuccessListener(firebaseUser -> {
-                        if (firebaseUser != null) {
+                .addOnSuccessListener(firebaseUser -> {
+                    if (firebaseUser != null) {
                             // Step 3: Cache the new data in Room
                             Executors.newSingleThreadExecutor().execute(() -> {
                                 roomDao.insert(firebaseUser); // Save fetched user to Room

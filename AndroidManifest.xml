@@ -61,6 +61,17 @@
             android:exported="true">
         </activity>
 
+
+        <activity android:name=".Activities.CategoryManagementActivity"
+            android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:exported="true">
+        </activity>
+
+        <activity android:name=".Activities.UserPrefsActivity"
+            android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:exported="true">
+        </activity>
+
     </application>
 
 </manifest>

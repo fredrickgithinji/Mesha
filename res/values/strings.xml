@@ -44,4 +44,6 @@
     <string name="add_beta_account">Create New Beta Account</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="select_category">Select Category</string>
+    <string name="select_currency">select currency</string>
 </resources>
