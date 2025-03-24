@@ -41,7 +41,7 @@ public class AnalysisActivity extends AppCompatActivity {
     private void initializeViews() {
         // Set default profile icon
         ImageView analysisIcon = findViewById(R.id.AnalysisIcon);
-        analysisIcon.setImageResource(R.drawable.default_profile);
+        analysisIcon.setImageResource(R.drawable.icon_mesha);
         tvNetBalance = findViewById(R.id.CurrentBalance);
 
         RecyclerView rvTransactions = findViewById(R.id.rvTransactions);

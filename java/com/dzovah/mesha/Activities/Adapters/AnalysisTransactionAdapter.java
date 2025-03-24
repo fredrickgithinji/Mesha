@@ -1,5 +1,7 @@
 package com.dzovah.mesha.Activities.Adapters;
 
+import static com.dzovah.mesha.R.drawable.icon_mesha;
+
 import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.os.Build;
@@ -90,7 +92,7 @@ public class AnalysisTransactionAdapter extends RecyclerView.Adapter<AnalysisTra
                                 is.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
-                                holder.transaction_icon.setImageResource(R.drawable.default_profile);
+                                holder.transaction_icon.setImageResource(icon_mesha);
                             }
                         });
                     }
@@ -99,7 +101,7 @@ public class AnalysisTransactionAdapter extends RecyclerView.Adapter<AnalysisTra
                 e.printStackTrace();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     context.getMainExecutor().execute(() ->
-                        holder.transaction_icon.setImageResource(R.drawable.default_profile)
+                        holder.transaction_icon.setImageResource(icon_mesha)
                     );
                 }
             }
