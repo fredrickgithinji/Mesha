@@ -2,6 +2,7 @@ package com.dzovah.mesha.Database.Entities;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 import androidx.annotation.NonNull;
 
@@ -16,13 +17,25 @@ public class Category {
     @ColumnInfo(name = "Category")
     private String category;
 
-    @ColumnInfo(name = "Description")
+    @ColumnInfo(name = "description")
     private String description;
 
-    // Constructor
-    public Category() {
+    // Primary constructor that Room will use
+    public Category(@NonNull String category, String description) {
         this.category = category;
         this.description = description;
+    }
+
+    // Secondary constructor - mark with @Ignore so Room won't get confused
+    @Ignore
+    public Category(@NonNull String category) {
+        this.category = category;
+        this.description = "";
+    }
+
+    // Default empty constructor - also ignored
+    @Ignore
+    public Category() {
     }
 
     // Getters and Setters
@@ -34,11 +47,12 @@ public class Category {
         this.categoryId = categoryId;
     }
 
+    @NonNull
     public String getCategory() {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(@NonNull String category) {
         this.category = category;
     }
 

@@ -42,7 +42,6 @@ import com.bumptech.glide.Glide;
 import com.dzovah.mesha.Methods.Utils.LocalStorageUtil;
 
 public class Dashboard extends AppCompatActivity {
-    private static final String TAG = "Dashboard";
     private MeshaDatabase database;
     private AlphaAccountAdapter accountAdapter;
     private DrawerLayout drawerLayout;
@@ -112,37 +111,25 @@ public class Dashboard extends AppCompatActivity {
         database = MeshaDatabase.Get_database(getApplicationContext());
         initializeViews();
         loadAccounts();
-
-        // Check if user is signed in first
         checkUserAndUpdateMenu();
-
-        // Load profile image
         loadProfileImage();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadAccounts(); // Reload accounts when returning to Dashboard
-        // Refresh the premium status every time the Dashboard comes to the foreground
+        loadAccounts();
         checkUserAndUpdateMenu();
-        // Reload profile image in case it was updated
         loadProfileImage();
     }
 
     private void checkUserAndUpdateMenu() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
-            // First update navigation menu to show logout option
             updateNavigationForSignedInUser(true);
-
-            // Then observe premium status
             observePremiumStatusAndUpdateMenu(currentUser.getUid());
         } else {
-            // User is not signed in
             updateNavigationForSignedInUser(false);
-
-            // Set default icon for account menu item
             MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
             if (accountMenuItem != null) {
                 accountMenuItem.setIcon(R.drawable.ic_normal_account);
@@ -161,43 +148,28 @@ public class Dashboard extends AppCompatActivity {
     }
 
     private void observePremiumStatusAndUpdateMenu(String userId) {
-        Log.d(TAG, "Observing premium status for user: " + userId);
-
-        // First try to get real-time updates from Firestore/Firebase
-        // Check if your MeshansRepository or Firebase_Meshans_Data_linkDao has a method to get real-time updates
-
-        // Then fallback to Room database observation
         LiveData<Meshans> userLiveData = database.meshansDao().get(userId);
         userLiveData.observe(this, user -> {
             if (user != null) {
                 boolean isPremium = user.isPremium();
-                Log.d(TAG, "User premium status: " + isPremium);
                 updateMenuIcon(isPremium);
             } else {
-                Log.d(TAG, "User data is null");
-                updateMenuIcon(false); // Default to non-premium if no user data
+                updateMenuIcon(false);
             }
         });
     }
 
     private void updateMenuIcon(boolean isPremium) {
         runOnUiThread(() -> {
-            Log.d(TAG, "Updating menu icon. Premium: " + isPremium);
-
             MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
             if (accountMenuItem != null) {
                 if (isPremium) {
-                    Log.d(TAG, "Setting premium icon");
                     accountMenuItem.setIcon(R.drawable.ic_premium_account);
                 } else {
-                    Log.d(TAG, "Setting normal icon");
                     accountMenuItem.setIcon(R.drawable.ic_normal_account);
                 }
-
-                // Force menu to refresh
                 invalidateOptionsMenu();
             } else {
-                Log.e(TAG, "Account menu item not found!");
             }
         });
     }
@@ -207,13 +179,10 @@ public class Dashboard extends AppCompatActivity {
         LottieAnimationView bubblesAnimationView = findViewById(R.id.bubbles);
         LottieAnimationView piechartAnimationView = findViewById(R.id.piechart);
         FloatingActionButton fabAddAccount = findViewById(R.id.fabAddAccount);
-
         bubblesAnimationView.playAnimation();
         piechartAnimationView.playAnimation();
-
         Quotes quotes = new Quotes();
         tvQuoteOfTheDay.setText(quotes.presentQuote());
-
         RecyclerView rvAccounts = findViewById(R.id.alpha_accounts_recyclerview);
         rvAccounts.setLayoutManager(new LinearLayoutManager(this));
         accountAdapter = new AlphaAccountAdapter(this);
@@ -238,16 +207,11 @@ public class Dashboard extends AppCompatActivity {
     private void loadAccounts() {
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                // Get all accounts
                 List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
-                
-                // Calculate accurate balance for each account
                 for (AlphaAccount account : accounts) {
                     double calculatedBalance = database.transactionDao().getAlphaAccountBalanceById(account.getAlphaAccountId());
                     account.setAlphaAccountBalance(calculatedBalance); // Or use setCalculatedBalance if you implemented it
                 }
-                
-                // Update UI
                 runOnUiThread(() -> {
                     accountAdapter.setAccounts(accounts);
                 });
@@ -270,7 +234,7 @@ public class Dashboard extends AppCompatActivity {
                 Toast.makeText(this, "Error updating account list", Toast.LENGTH_SHORT).show();
             }
         });
-        dialog.show(); // Show the dialog
+        dialog.show(); 
     }
 
     private void loadProfileImage() {
@@ -278,26 +242,20 @@ public class Dashboard extends AppCompatActivity {
         if (currentUser != null) {
             String userId = currentUser.getUid();
             String fileName = userId + "_profile.png";
-            
-            // Try to load cached image first
             Bitmap cachedImage = LocalStorageUtil.loadImage(this, fileName);
+
             if (cachedImage != null) {
-                // Use cached image
                 profileImageView.setImageBitmap(cachedImage);
             } else {
-                // Use default image if no cached image is available
                 profileImageView.setImageResource(R.drawable.icon_mesha);
             }
             
-            // Add click listener to navigate to account section
             profileImageView.setOnClickListener(v -> {
                 startActivity(new Intent(Dashboard.this, AccountsSection.class));
             });
         } else {
-            // Use default image if user is not logged in
+         
             profileImageView.setImageResource(R.drawable.icon_mesha);
-            
-            // Add click listener to navigate to sign in
             profileImageView.setOnClickListener(v -> {
                 startActivity(new Intent(Dashboard.this, SignInActivity.class));
             });
