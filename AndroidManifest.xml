@@ -12,6 +12,7 @@
 
     <application
         android:allowBackup="true"
+        android:hardwareAccelerated="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -23,6 +24,7 @@
 
     <activity android:name=".Activities.Dashboard"
         android:theme="@style/Theme.MeshaApp.Fullscreen"
+        android:hardwareAccelerated="true"
         android:exported="true">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
@@ -32,43 +34,51 @@
 
         <activity android:name=".Activities.AlphaAccountDetailActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 
         <activity android:name=".Activities.BetaAccountDetailActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 
         <activity android:name=".Activities.SignUpActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 
         <activity android:name=".Activities.SignInActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 
         <activity android:name=".Activities.AccountsSection"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 
 
         <activity android:name=".Activities.AnalysisActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 
 
         <activity android:name=".Activities.CategoryManagementActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 
         <activity android:name=".Activities.UserPrefsActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
 

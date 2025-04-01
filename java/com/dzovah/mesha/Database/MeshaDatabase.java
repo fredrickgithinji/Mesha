@@ -1,6 +1,7 @@
 package com.dzovah.mesha.Database;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.room.Database;
@@ -53,24 +54,35 @@ public abstract class MeshaDatabase extends RoomDatabase {
     public static final ExecutorService databaseWriteExecutor =
         Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
-    private static final RoomDatabase.Callback sRoomDatabaseCallback = new RoomDatabase.Callback() {
+    private static final RoomDatabase.Callback roomCallback = new RoomDatabase.Callback() {
         @Override
         public void onCreate(@NonNull SupportSQLiteDatabase db) {
             super.onCreate(db);
             
+            // Create default categories when the database is created
             databaseWriteExecutor.execute(() -> {
-                CategoryDao dao = INSTANCE.categoryDao();
-                
-                // Insert default categories
-                Category general = new Category();
-                Category food = new Category();
-                Category transport = new Category();
-                Category utilities = new Category();
-                
-                dao.insert(general);  // This will be ID 1
-                dao.insert(food);     // This will be ID 2
-                dao.insert(transport);// This will be ID 3
-                dao.insert(utilities);// This will be ID 4
+                try {
+                    CategoryDao categoryDao = INSTANCE.categoryDao();
+                    
+                    // Create and insert default categories
+                    Category generalCategory = new Category("General", "General expenses");
+                    Category foodCategory = new Category("Food", "Food and dining");
+                    Category transportCategory = new Category("Transportation", "Transport and travel");
+                    Category utilitiesCategory = new Category("Utilities", "Bills and utilities");
+                    Category entertainmentCategory = new Category("Entertainment", "Leisure activities");
+                    
+                    categoryDao.insert(generalCategory);
+                    categoryDao.insert(foodCategory);
+                    categoryDao.insert(transportCategory);
+                    categoryDao.insert(utilitiesCategory);
+                    categoryDao.insert(entertainmentCategory);
+                    
+                    // Log success
+                    Log.d("MeshaDatabase", "Default categories created successfully");
+                } catch (Exception e) {
+                    // Log the error
+                    Log.e("MeshaDatabase", "Error creating default categories", e);
+                }
             });
         }
     };
@@ -85,7 +97,7 @@ public abstract class MeshaDatabase extends RoomDatabase {
                         MeshaDatabase.class,
                         "Mesha_database"
                     )
-                    .addCallback(sRoomDatabaseCallback)
+                    .addCallback(roomCallback)
                     .fallbackToDestructiveMigration() // Handles schema changes by recreating tables
                     .build();
                 }
