@@ -196,7 +196,7 @@ public class AlternativeBetaAccountDialog extends Dialog {
 
                 ((android.app.Activity) context).runOnUiThread(() -> {
                     Toast.makeText(context, "Your account has been topped up successfully", Toast.LENGTH_SHORT).show();
-                    if (listener != null) {
+            if (listener != null) {
                         listener.onTransactionCompleted();
                     }
                     dismiss();
