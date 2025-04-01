@@ -1,8 +1,33 @@
 package com.dzovah.mesha.Methods.Utils;
 
+/**
+ * Utility class that provides motivational and educational financial quotes.
+ * <p>
+ * This class manages a collection of inspirational quotes related to finance,
+ * investing, wealth, and money management. It selects quotes based on the current
+ * date, ensuring that users see a different quote each day without repetition
+ * within the quote collection cycle.
+ * </p>
+ * <p>
+ * The quotes are intended to educate and motivate users of the Mesha financial
+ * application, encouraging good financial habits and providing wisdom from
+ * successful investors and financial experts.
+ * </p>
+ *
+ * @author Electra Magus
+ * @version 1.0
+ */
 public class Quotes {
+    /** Array containing all available financial quotes */
     private final String[] quotes;
 
+    /**
+     * Constructs a new Quotes instance with a predefined collection of financial quotes.
+     * <p>
+     * Initializes the quotes array with a comprehensive collection of financial wisdom
+     * from various sources, including famous investors, entrepreneurs, and financial experts.
+     * </p>
+     */
     public Quotes() {
         quotes = new String[]{
             "An investment in knowledge pays the best interest.",
@@ -86,7 +111,7 @@ public class Quotes {
             "Money is like manure. You have to spread it around or it smells.",
             "The rich invest in time, the poor invest in money.",
             "It's not the employer who pays the wages. Employers only handle the money. It's the customer who pays the wages.",
-            "It’s not how much money you make, but how much money you keep, how hard it works for you, and how many generations you keep it for.",
+            "It's not how much money you make, but how much money you keep, how hard it works for you, and how many generations you keep it for.",
             "The rich see assets as a source of income. The poor see assets as a source of expenses.",
             "The biggest risk is not taking any risk.",
             "Financial freedom is freedom from fear.",
@@ -95,7 +120,7 @@ public class Quotes {
             "Money is the opposite of the weather. Nobody talks about it, but everybody does something about it.",
             "The rich invest in assets, while the poor invest in liabilities.",
             "Money won't create success, the freedom to make it will.",
-            "Wealth is not about having a lot of money; it’s about having a lot of options.",
+            "Wealth is not about having a lot of money; it's about having a lot of options.",
             "The rich get richer because the poor think every opportunity is a scam.",
             "The most successful people see adversity not as a stumbling block, but as a stepping stone to greatness.",
             "Money is a tool for freedom. It allows you to take control of your life and pursue your passions.",
@@ -104,10 +129,31 @@ public class Quotes {
         };
     }
 
+    /**
+     * Calculates the index of today's quote based on the current date.
+     * <p>
+     * This method uses the current timestamp (in milliseconds) divided by the number
+     * of milliseconds in a day to generate a date-based index. This ensures that
+     * the same quote is shown throughout a given day, but a different quote is
+     * presented on different days.
+     * </p>
+     *
+     * @return The index of today's quote in the quotes array
+     */
     private int getQuoteIndex() {
         return (int) (System.currentTimeMillis() / 86400000) % quotes.length;
     }
 
+    /**
+     * Returns the quote of the day.
+     * <p>
+     * This method selects and returns a quote based on the current date. The same
+     * quote will be returned for the entire day, and it will change at midnight.
+     * The selection cycles through the entire collection of quotes before repeating.
+     * </p>
+     *
+     * @return The quote of the day as a String
+     */
     public String presentQuote() {
         int index = getQuoteIndex();
         return quotes[index];

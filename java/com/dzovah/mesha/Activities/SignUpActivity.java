@@ -23,16 +23,55 @@ import com.dzovah.mesha.Database.Repositories.MeshansRepository;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Logger;
 
+/**
+ * Activity for handling user registration and account creation.
+ * <p>
+ * This activity provides user interface and logic for:
+ * <ul>
+ *     <li>Email/password account creation</li>
+ *     <li>Google sign-up integration</li>
+ *     <li>Navigation to sign-in</li>
+ *     <li>Option to continue without signing up</li>
+ * </ul>
+ * After successful registration, a user profile is created in the database
+ * and the user is directed to the Dashboard activity.
+ * </p>
+ *
+ * @author Electra Magus
+ * @version 1.0
+ * @see Dashboard
+ * @see SignInActivity
+ * @see AuthManager
+ */
 public class SignUpActivity extends AppCompatActivity {
 
+    /** Manager for Firebase authentication operations */
     private AuthManager authManager;
+    
+    /** Repository for user data operations */
     private MeshansRepository meshansRepository;
+    
+    /** Input fields for email and password */
     private EditText emailEditText, passwordEditText;
+    
+    /** Button to trigger the sign-up process */
     private Button signUpButton;
+    
+    /** Text link for sign-in navigation */
     private TextView signInTextView;
+    
+    /** Request code for Google Sign-In */
     private static final int RC_SIGN_IN = 9001;
+    
+    /** Button for Google sign-up */
     private Button googleSignUpButton;
 
+    /**
+     * Initializes the activity, sets up the UI components and event listeners.
+     *
+     * @param savedInstanceState If the activity is being re-initialized after being shut down,
+     *                           this contains the data it most recently supplied in onSaveInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,6 +103,14 @@ public class SignUpActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Attempts to register a new user with the provided email and password.
+     * <p>
+     * Validates the input fields and uses the AuthManager to create
+     * a new user account with Firebase Authentication. On success,
+     * stores the user's profile data in the database.
+     * </p>
+     */
     private void signUp() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
@@ -88,16 +135,40 @@ public class SignUpActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Navigates to the SignInActivity.
+     * <p>
+     * Called when the user clicks on the sign-in text.
+     * </p>
+     */
     private void navigateToSignIn() {
         Intent intent = new Intent(this, SignInActivity.class);
         startActivity(intent);
     }
 
+    /**
+     * Initiates the Google Sign-In process.
+     * <p>
+     * Gets the Google Sign-In intent from the AuthManager and
+     * starts the activity for result.
+     * </p>
+     */
     private void startGoogleSignIn() {
         Intent signInIntent = authManager.getGoogleSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
     }
 
+    /**
+     * Handles the result from the Google Sign-In activity.
+     * <p>
+     * Processes the result from the Google Sign-In intent and uses
+     * the AuthManager to authenticate with Firebase using the Google credentials.
+     * </p>
+     *
+     * @param requestCode The request code originally supplied to startActivityForResult
+     * @param resultCode The result code returned by the child activity
+     * @param data An Intent which can return result data to the caller
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -120,6 +191,16 @@ public class SignUpActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Stores the user's profile data in the database.
+     * <p>
+     * Creates a new Meshans object with default values and the user's
+     * authentication information, then saves it to both Firebase and Room
+     * databases using the repository.
+     * </p>
+     *
+     * @param user The authenticated Firebase user whose details to store
+     */
     private void storeUserDetails(FirebaseUser user) {
         // Create new Meshans object with required fields
         Meshans meshan = new Meshans();
@@ -145,5 +226,4 @@ public class SignUpActivity extends AppCompatActivity {
                     finish();
                 });
     }
-
 }

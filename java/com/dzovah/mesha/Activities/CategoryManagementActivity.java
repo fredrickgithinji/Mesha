@@ -17,12 +17,45 @@ import com.dzovah.mesha.R;
 
 import java.util.List;
 
+/**
+ * Activity for managing transaction categories.
+ * <p>
+ * This activity provides functionality for:
+ * <ul>
+ *     <li>Viewing all existing transaction categories</li>
+ *     <li>Adding new categories to the system</li>
+ *     <li>Managing category organization</li>
+ * </ul>
+ * Categories are used throughout the application to categorize and organize
+ * financial transactions, enabling better analysis and reporting of spending patterns.
+ * </p>
+ *
+ * @author Electra Magus
+ * @version 1.0
+ * @see Category
+ * @see CategoryAdapter
+ */
 public class CategoryManagementActivity extends AppCompatActivity {
 
+    /** Input field for entering new category names */
     private EditText categoryNameInput;
+    
+    /** Adapter for displaying categories in the RecyclerView */
     private CategoryAdapter categoryAdapter;
+    
+    /** Database instance for accessing app data */
     private MeshaDatabase database;
 
+    /**
+     * Initializes the activity, sets up UI components, and loads existing categories.
+     * <p>
+     * This method initializes the database connection, sets up the RecyclerView with
+     * the CategoryAdapter, and configures the button click listener for adding new categories.
+     * </p>
+     *
+     * @param savedInstanceState If the activity is being re-initialized after being shut down,
+     *                           this contains the data it most recently supplied in onSaveInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,6 +81,13 @@ public class CategoryManagementActivity extends AppCompatActivity {
         addCategoryButton.setOnClickListener(v -> addCategory());
     }
 
+    /**
+     * Loads all categories from the database and updates the UI.
+     * <p>
+     * This method retrieves all categories from the database using a background thread
+     * and then updates the RecyclerView through the adapter on the UI thread.
+     * </p>
+     */
     private void loadCategories() {
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             List<Category> categories = database.categoryDao().getAllCategories();
@@ -55,6 +95,19 @@ public class CategoryManagementActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Adds a new category to the database.
+     * <p>
+     * This method:
+     * <ul>
+     *     <li>Validates that the category name is not empty</li>
+     *     <li>Creates a new Category entity with the provided name</li>
+     *     <li>Inserts the category into the database using a background thread</li>
+     *     <li>Updates the UI with success or error messages</li>
+     *     <li>Reloads the category list to display the new category</li>
+     * </ul>
+     * </p>
+     */
     private void addCategory() {
         String categoryName = categoryNameInput.getText().toString().trim();
         
@@ -81,4 +134,4 @@ public class CategoryManagementActivity extends AppCompatActivity {
             }
         });
     }
-} 
+}
