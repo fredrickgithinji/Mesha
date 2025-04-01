@@ -41,15 +41,63 @@ import java.util.List;
 import com.bumptech.glide.Glide;
 import com.dzovah.mesha.Methods.Utils.LocalStorageUtil;
 
+/**
+ * Main dashboard activity of the Mesha application.
+ * <p>
+ * This activity serves as the home screen and provides:
+ * <ul>
+ *     <li>Overview of user's alpha accounts and balances</li>
+ *     <li>Navigation drawer with access to various sections of the app</li>
+ *     <li>Account creation functionality</li>
+ *     <li>Quick access to account details</li>
+ *     <li>Profile image and premium status display</li>
+ *     <li>Inspirational quote display</li>
+ *     <li>Access to financial analysis</li>
+ * </ul>
+ * The dashboard adapts its UI based on whether the user is signed in
+ * and whether they have premium status.
+ * </p>
+ *
+ * @author Electra Magus
+ * @version 1.0
+ * @see AccountsSection
+ * @see AlphaAccountDetailActivity
+ * @see AnalysisActivity
+ * @see UserPrefsActivity
+ */
 public class Dashboard extends AppCompatActivity {
+    /** Database instance for accessing app data */
     private MeshaDatabase database;
+    
+    /** Adapter for displaying alpha accounts in the RecyclerView */
     private AlphaAccountAdapter accountAdapter;
+    
+    /** DrawerLayout for the navigation drawer */
     private DrawerLayout drawerLayout;
+    
+    /** NavigationView containing the navigation menu items */
     private NavigationView navigationView;
+    
+    /** Button to open the navigation drawer */
     private ImageButton menuButton;
+    
+    /** Navigation menu reference for dynamic updates */
     private Menu navMenu;
+    
+    /** ImageView for displaying the user's profile picture */
     private ImageView profileImageView;
 
+    /**
+     * Initializes the dashboard activity, sets up the UI components, 
+     * and loads required data.
+     * <p>
+     * This method initializes the navigation drawer, animations, account list,
+     * and checks the user's authentication state to update the UI accordingly.
+     * </p>
+     *
+     * @param savedInstanceState If the activity is being re-initialized after being shut down,
+     *                           this contains the data it most recently supplied in onSaveInstanceState
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,72 +156,142 @@ public class Dashboard extends AppCompatActivity {
             return true;
         });
 
-        database = MeshaDatabase.Get_database(getApplicationContext());
-        initializeViews();
-        loadAccounts();
-        checkUserAndUpdateMenu();
-        loadProfileImage();
+        // Initialize database and UI on a background thread
+        initializeAsync();
     }
 
+    /**
+     * Initializes database and loads initial data asynchronously
+     * to avoid blocking the main thread.
+     */
+    private void initializeAsync() {
+        
+        // Initialize database and load data on a background thread
+        new Thread(() -> {
+            database = MeshaDatabase.Get_database(getApplicationContext());
+            
+            // Run UI initialization on the main thread
+            runOnUiThread(() -> {
+                initializeViews();
+                checkUserAndUpdateMenu();
+                // Load accounts will handle hiding the loading state
+                loadAccounts();
+                loadProfileImage();
+            });
+        }).start();
+    }
+    
+    /**
+     * Shows or hides a loading state in the UI.
+     * 
+     * @param show True to show loading state, false to hide it
+     */
+
+    /**
+     * Refreshes account data, authentication state, and profile image
+     * when the activity is resumed.
+     */
     @Override
     protected void onResume() {
         super.onResume();
-        loadAccounts();
-        checkUserAndUpdateMenu();
-        loadProfileImage();
-    }
-
-    private void checkUserAndUpdateMenu() {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser != null) {
-            updateNavigationForSignedInUser(true);
-            observePremiumStatusAndUpdateMenu(currentUser.getUid());
+        // Check if database is initialized before loading data
+        if (database != null) {
+            loadAccounts();
+            checkUserAndUpdateMenu();
+            loadProfileImage();
         } else {
-            updateNavigationForSignedInUser(false);
-            MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
-            if (accountMenuItem != null) {
-                accountMenuItem.setIcon(R.drawable.ic_normal_account);
-            }
+            // Re-initialize if database is null
+            initializeAsync();
         }
     }
 
-    private void updateNavigationForSignedInUser(boolean isSignedIn) {
-        MenuItem signInItem = navMenu.findItem(R.id.nav_signin);
-        MenuItem logoutItem = navMenu.findItem(R.id.nav_logout);
+    /**
+     * Loads alpha accounts from the database and updates the recycler view.
+     * <p>
+     * This method performs database operations on a background thread and
+     * updates the UI on the main thread when data is available.
+     * </p>
+     */
+    private void loadAccounts() {
+        
+        // Execute database query on a background thread
+        MeshaDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
+                // Update UI on the main thread
+                runOnUiThread(() -> {
+                    accountAdapter.setAccounts(accounts);
+                    
+                    // Update empty state visibility
+                   /* View emptyView = findViewById(R.id.emptyStateLayout);
+                    if (emptyView != null) {
+                        emptyView.setVisibility(accounts.isEmpty() ? View.VISIBLE : View.GONE);
+                    }
+                    */
 
-        if (signInItem != null && logoutItem != null) {
-            signInItem.setVisible(!isSignedIn);
-            logoutItem.setVisible(isSignedIn);
-        }
-    }
-
-    private void observePremiumStatusAndUpdateMenu(String userId) {
-        LiveData<Meshans> userLiveData = database.meshansDao().get(userId);
-        userLiveData.observe(this, user -> {
-            if (user != null) {
-                boolean isPremium = user.isPremium();
-                updateMenuIcon(isPremium);
-            } else {
-                updateMenuIcon(false);
+                });
+            } catch (Exception e) {
+                Log.e("Dashboard", "Error loading accounts", e);
+                runOnUiThread(() -> {
+                    Toast.makeText(Dashboard.this, "Failed to load accounts: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
 
-    private void updateMenuIcon(boolean isPremium) {
-        runOnUiThread(() -> {
-            MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
-            if (accountMenuItem != null) {
-                if (isPremium) {
-                    accountMenuItem.setIcon(R.drawable.ic_premium_account);
-                } else {
-                    accountMenuItem.setIcon(R.drawable.ic_normal_account);
-                }
-                invalidateOptionsMenu();
+    /**
+     * Loads the user's profile image efficiently using Glide.
+     * <p>
+     * Prioritizes cached images and loads from network only when necessary.
+     * All image processing occurs off the main thread.
+     * </p>
+     */
+    private void loadProfileImage() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            // Set default image if user is not logged in
+            Glide.with(this)
+                .load(R.drawable.icon_mesha)
+                .into(profileImageView);
+            return;
+        }
+
+        // Try to load from cache first
+        Bitmap cachedImage = LocalStorageUtil.loadImage(this, currentUser.getUid() + "_profile.png");
+        if (cachedImage != null) {
+            profileImageView.setImageBitmap(cachedImage);
+            return;
+        }
+
+        // Check if user has a profile URL stored in Firebase
+        database.meshansDao().get(currentUser.getUid()).observe(this, user -> {
+            if (user != null && user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().equals("to edit")) {
+                // Load from network using Glide (which handles threading automatically)
+                Glide.with(this)
+                    .load(user.getProfilePictureUrl())
+                    .placeholder(R.drawable.icon_mesha)
+                    .error(R.drawable.icon_mesha)
+                    .into(profileImageView);
             } else {
+                // Set default image
+                profileImageView.setImageResource(R.drawable.icon_mesha);
             }
         });
     }
 
+    /**
+     * Initializes and sets up all UI components of the dashboard.
+     * <p>
+     * This includes setting up:
+     * <ul>
+     *     <li>Animations</li>
+     *     <li>Quote of the day</li>
+     *     <li>RecyclerView for accounts</li>
+     *     <li>Adapter and click listeners</li>
+     *     <li>Add account button</li>
+     * </ul>
+     * </p>
+     */
     private void initializeViews() {
         TextView tvQuoteOfTheDay = findViewById(R.id.tvQuoteOfTheDay);
         LottieAnimationView bubblesAnimationView = findViewById(R.id.bubbles);
@@ -204,25 +322,12 @@ public class Dashboard extends AppCompatActivity {
         fabAddAccount.setOnClickListener(v -> showCreateAccountDialog());
     }
 
-    private void loadAccounts() {
-        MeshaDatabase.databaseWriteExecutor.execute(() -> {
-            try {
-                List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
-                for (AlphaAccount account : accounts) {
-                    double calculatedBalance = database.transactionDao().getAlphaAccountBalanceById(account.getAlphaAccountId());
-                    account.setAlphaAccountBalance(calculatedBalance); // Or use setCalculatedBalance if you implemented it
-                }
-                runOnUiThread(() -> {
-                    accountAdapter.setAccounts(accounts);
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, 
-                    "Error loading accounts: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-            }
-        });
-    }
-
+    /**
+     * Displays the dialog for creating a new alpha account.
+     * <p>
+     * When an account is successfully created, the account list is refreshed.
+     * </p>
+     */
     private void showCreateAccountDialog() {
         CreateAccountDialog dialog = new CreateAccountDialog(this, database);
         dialog.setOnAccountCreatedListener(account -> {
@@ -237,28 +342,86 @@ public class Dashboard extends AppCompatActivity {
         dialog.show(); 
     }
 
-    private void loadProfileImage() {
+    /**
+     * Checks the current user authentication state and updates the navigation menu accordingly.
+     * <p>
+     * If a user is signed in, the sign-in option is hidden and the logout option is shown.
+     * For premium users, a special account icon is displayed.
+     * </p>
+     */
+    private void checkUserAndUpdateMenu() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
-            String userId = currentUser.getUid();
-            String fileName = userId + "_profile.png";
-            Bitmap cachedImage = LocalStorageUtil.loadImage(this, fileName);
-
-            if (cachedImage != null) {
-                profileImageView.setImageBitmap(cachedImage);
-            } else {
-                profileImageView.setImageResource(R.drawable.icon_mesha);
-            }
-            
-            profileImageView.setOnClickListener(v -> {
-                startActivity(new Intent(Dashboard.this, AccountsSection.class));
-            });
+            updateNavigationForSignedInUser(true);
+            observePremiumStatusAndUpdateMenu(currentUser.getUid());
         } else {
-         
-            profileImageView.setImageResource(R.drawable.icon_mesha);
-            profileImageView.setOnClickListener(v -> {
-                startActivity(new Intent(Dashboard.this, SignInActivity.class));
-            });
+            updateNavigationForSignedInUser(false);
+            MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
+            if (accountMenuItem != null) {
+                accountMenuItem.setIcon(R.drawable.ic_normal_account);
+            }
         }
+    }
+
+    /**
+     * Updates the navigation drawer menu based on whether the user is signed in.
+     * <p>
+     * Shows or hides the sign-in and logout options based on authentication state.
+     * </p>
+     *
+     * @param isSignedIn Whether the user is currently signed in
+     */
+    private void updateNavigationForSignedInUser(boolean isSignedIn) {
+        MenuItem signInItem = navMenu.findItem(R.id.nav_signin);
+        MenuItem logoutItem = navMenu.findItem(R.id.nav_logout);
+
+        if (signInItem != null && logoutItem != null) {
+            signInItem.setVisible(!isSignedIn);
+            logoutItem.setVisible(isSignedIn);
+        }
+    }
+
+    /**
+     * Observes the user's premium status from the database and updates the UI accordingly.
+     * <p>
+     * Uses LiveData to react to changes in the user's premium status and update
+     * the account icon in the navigation menu.
+     * </p>
+     *
+     * @param userId The ID of the current user
+     */
+    private void observePremiumStatusAndUpdateMenu(String userId) {
+        LiveData<Meshans> userLiveData = database.meshansDao().get(userId);
+        userLiveData.observe(this, user -> {
+            if (user != null) {
+                boolean isPremium = user.isPremium();
+                updateMenuIcon(isPremium);
+            } else {
+                updateMenuIcon(false);
+            }
+        });
+    }
+
+    /**
+     * Updates the account icon in the navigation menu based on premium status.
+     * <p>
+     * Premium users get a special premium icon, while regular users get the standard icon.
+     * </p>
+     *
+     * @param isPremium Whether the user has premium status
+     */
+    private void updateMenuIcon(boolean isPremium) {
+        runOnUiThread(() -> {
+            MenuItem accountMenuItem = navMenu.findItem(R.id.nav_account);
+            if (accountMenuItem != null) {
+                if (isPremium) {
+                    accountMenuItem.setIcon(R.drawable.ic_premium_account);
+                } else {
+                    accountMenuItem.setIcon(R.drawable.ic_normal_account);
+                }
+                invalidateOptionsMenu();
+            } else {
+            }
+        });
     }
 }

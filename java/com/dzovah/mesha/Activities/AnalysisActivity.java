@@ -23,11 +23,41 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Activity for analyzing and displaying financial transactions.
+ * <p>
+ * This activity provides users with a comprehensive view of their financial activity:
+ * <ul>
+ *     <li>Displays a chronological list of all transactions across accounts</li>
+ *     <li>Shows the net balance of all financial activity</li>
+ *     <li>Provides detailed views of individual transactions</li>
+ *     <li>Associates transactions with their respective Alpha and Beta accounts</li>
+ * </ul>
+ * Users can tap on individual transactions to view complete details including
+ * amounts, descriptions, dates, and associated accounts.
+ * </p>
+ *
+ * @author Electra Magus
+ * @version 1.0
+ * @see Transaction
+ * @see AnalysisTransactionAdapter
+ */
 public class AnalysisActivity extends AppCompatActivity {
+    /** Database instance for accessing app data */
     private MeshaDatabase database;
+    
+    /** Adapter for displaying transactions in the RecyclerView */
     private AnalysisTransactionAdapter adapter;
+    
+    /** TextView displaying the calculated net balance across all accounts */
     private TextView tvNetBalance;
 
+    /**
+     * Initializes the activity, sets up the UI components, and loads transaction data.
+     *
+     * @param savedInstanceState If the activity is being re-initialized after being shut down,
+     *                           this contains the data it most recently supplied in onSaveInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,6 +68,18 @@ public class AnalysisActivity extends AppCompatActivity {
         loadTransactions();
     }
 
+    /**
+     * Initializes and sets up all UI components of the analysis screen.
+     * <p>
+     * This includes setting up:
+     * <ul>
+     *     <li>The analysis icon</li>
+     *     <li>The net balance display</li>
+     *     <li>The RecyclerView for transactions</li>
+     *     <li>The transaction adapter with click listener</li>
+     * </ul>
+     * </p>
+     */
     private void initializeViews() {
         // Set default profile icon
         ImageView analysisIcon = findViewById(R.id.AnalysisIcon);
@@ -52,6 +94,14 @@ public class AnalysisActivity extends AppCompatActivity {
         rvTransactions.setAdapter(adapter);
     }
 
+    /**
+     * Loads all transactions from the database and updates the UI.
+     * <p>
+     * This method retrieves transactions sorted by entry time and calculates
+     * the net balance. The operations are performed on a background thread
+     * to avoid blocking the UI.
+     * </p>
+     */
     private void loadTransactions() {
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
@@ -71,6 +121,23 @@ public class AnalysisActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Displays a dialog with detailed information about a selected transaction.
+     * <p>
+     * When a transaction is tapped, this method retrieves associated Alpha and Beta
+     * account information and presents a comprehensive view of the transaction details,
+     * including:
+     * <ul>
+     *     <li>Amount (formatted)</li>
+     *     <li>Description</li>
+     *     <li>Date and time</li>
+     *     <li>Associated Alpha and Beta accounts</li>
+     *     <li>Transaction type (credit or debit)</li>
+     * </ul>
+     * </p>
+     *
+     * @param transaction The transaction to display details for
+     */
     private void showTransactionDetails(Transaction transaction) {
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
@@ -116,4 +183,3 @@ public class AnalysisActivity extends AppCompatActivity {
         });
     }
 }
-

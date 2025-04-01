@@ -25,11 +25,49 @@ import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import java.io.InputStream;
 import java.util.List;
 
+/**
+ * Activity for displaying detailed information about an Alpha Account.
+ * <p>
+ * This activity provides:
+ * <ul>
+ *     <li>Detailed view of a specific Alpha Account with its name, icon, and balance</li>
+ *     <li>List of all Beta Accounts associated with this Alpha Account</li>
+ *     <li>Ability to create new Beta Accounts within this Alpha Account</li>
+ *     <li>Real-time calculation and display of the Alpha Account balance</li>
+ * </ul>
+ * The activity receives the Alpha Account ID via intent extra and loads all
+ * necessary data from the database to populate the UI. Beta Accounts are displayed
+ * in a RecyclerView with their respective details.
+ * </p>
+ *
+ * @author Electra Magus
+ * @version 1.0
+ * @see AlphaAccount
+ * @see BetaAccount
+ * @see BetaAccountAdapter
+ * @see CreateAccountDialog
+ */
 public class AlphaAccountDetailActivity extends AppCompatActivity {
+    /** Database instance for accessing app data */
     private MeshaDatabase database;
+    
+    /** Adapter for displaying beta accounts in the RecyclerView */
     private BetaAccountAdapter betaAccountAdapter;
+    
+    /** ID of the Alpha Account being displayed */
     private int alphaAccountId;
 
+    /**
+     * Initializes the activity, sets up UI components, and loads Alpha Account data.
+     * <p>
+     * This method retrieves the Alpha Account ID from the intent, initializes views,
+     * and triggers the loading of Alpha Account details and associated Beta Accounts.
+     * If the Alpha Account ID is invalid, the activity finishes with an error message.
+     * </p>
+     *
+     * @param savedInstanceState If the activity is being re-initialized after being shut down,
+     *                           this contains the data it most recently supplied in onSaveInstanceState
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,6 +86,17 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
         loadBetaAccounts();
     }
 
+    /**
+     * Initializes and sets up all UI components of the detail screen.
+     * <p>
+     * This includes setting up:
+     * <ul>
+     *     <li>Animations</li>
+     *     <li>RecyclerView for Beta Accounts</li>
+     *     <li>Floating action button for adding new Beta Accounts</li>
+     * </ul>
+     * </p>
+     */
     private void initializeViews() {
         LottieAnimationView bubblesAnimationView = findViewById(R.id.bubbles);
         LottieAnimationView piechartAnimationView = findViewById(R.id.money);
@@ -56,8 +105,6 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
         bubblesAnimationView.playAnimation();
         piechartAnimationView.playAnimation();
         
-
-
         RecyclerView rvBetaAccounts = findViewById(R.id.rvBetaAccounts);
         rvBetaAccounts.setLayoutManager(new LinearLayoutManager(this));
         betaAccountAdapter = new BetaAccountAdapter(this);
@@ -66,6 +113,18 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
         fabAddBeta.setOnClickListener(v -> showCreateBetaDialog());
     }
 
+    /**
+     * Loads and displays the Alpha Account details from the database.
+     * <p>
+     * This method:
+     * <ul>
+     *     <li>Retrieves the Alpha Account data from the database</li>
+     *     <li>Calculates its current balance based on transactions</li>
+     *     <li>Updates the UI with account name, balance, and icon</li>
+     * </ul>
+     * The operations are performed on a background thread to avoid blocking the UI.
+     * </p>
+     */
     private void loadAlphaAccountDetails() {
         if (alphaAccountId == -1) return;
         
@@ -114,13 +173,29 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Updates the UI elements with fresh account data.
+     * <p>
+     * This method is used to refresh the display when account details change.
+     * </p>
+     *
+     * @param account The AlphaAccount with updated information
+     */
     private void updateUI(AlphaAccount account) {
-    // Update UI elements with fresh account data
-    TextView tvBalance = findViewById(R.id.tvAlphaAccountBalance);
-    tvBalance.setText(CurrencyFormatter.format(account.getAlphaAccountBalance()));
-    // Update other UI elements...
-}
+        // Update UI elements with fresh account data
+        TextView tvBalance = findViewById(R.id.tvAlphaAccountBalance);
+        tvBalance.setText(CurrencyFormatter.format(account.getAlphaAccountBalance()));
+        // Update other UI elements...
+    }
 
+    /**
+     * Loads and displays Beta Accounts associated with this Alpha Account.
+     * <p>
+     * This method retrieves all Beta Accounts linked to the current Alpha Account
+     * from the database and updates the RecyclerView through the adapter.
+     * The operations are performed on a background thread to avoid blocking the UI.
+     * </p>
+     */
     private void loadBetaAccounts() {
         try {
             MeshaDatabase.databaseWriteExecutor.execute(() -> {
@@ -146,6 +221,16 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Failed to access database", Toast.LENGTH_SHORT).show();
         }
     }
+    
+    /**
+     * Displays the dialog for creating a new Beta Account.
+     * <p>
+     * This method opens a dialog that allows the user to create a new Beta Account
+     * within the current Alpha Account. After successful creation, it refreshes
+     * the list of Beta Accounts and updates the Alpha Account details to reflect
+     * any balance changes.
+     * </p>
+     */
     private void showCreateBetaDialog() {
         CreateAccountDialog dialog = new CreateAccountDialog(this, database, alphaAccountId);
         dialog.setOnAccountCreatedListener(account -> {
@@ -163,6 +248,18 @@ public class AlphaAccountDetailActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    /**
+     * Handles activity results to refresh data when needed.
+     * <p>
+     * This method is called when an activity launched from this one returns a result.
+     * If the result is RESULT_OK, it refreshes both the Alpha Account details and
+     * the list of Beta Accounts to ensure the UI displays current data.
+     * </p>
+     *
+     * @param requestCode The integer request code originally supplied to startActivityForResult()
+     * @param resultCode The integer result code returned by the child activity
+     * @param data An Intent, which can return result data to the caller
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

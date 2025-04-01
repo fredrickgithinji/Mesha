@@ -23,27 +23,57 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Logger;
 
+/**
+ * Activity for handling user authentication and sign-in.
+ * <p>
+ * This activity provides user interface and logic for:
+ * <ul>
+ *     <li>Email/password sign-in</li>
+ *     <li>Google sign-in integration</li>
+ *     <li>Password reset functionality</li>
+ *     <li>Navigation to sign-up</li>
+ *     <li>Option to continue without signing in</li>
+ * </ul>
+ * Once authenticated, users are directed to the Dashboard activity.
+ * </p>
+ *
+ * @author Electra Magus
+ * @version 1.0
+ * @see Dashboard
+ * @see SignUpActivity
+ * @see AuthManager
+ */
 public class SignInActivity extends AppCompatActivity {
 
+    /** Request code for Google Sign-In */
     private static final int RC_SIGN_IN = 9001;
+    
+    /** Manager for Firebase authentication operations */
     private AuthManager authManager;
+    
+    /** Repository for user data operations */
     private MeshansRepository meshansRepository;
+    
+    /** Input fields for email and password */
     private EditText emailEditText, passwordEditText;
+    
+    /** Buttons for standard sign-in and Google sign-in */
     private Button signInButton, googleSignInButton;
+    
+    /** Text links for sign-up and password reset navigation */
     private TextView signUpTextView, passwordResetTextView;
 
+    /**
+     * Initializes the activity, sets up the UI components and event listeners.
+     *
+     * @param savedInstanceState If the activity is being re-initialized after being shut down,
+     *                           this contains the data it most recently supplied in onSaveInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_in);
-        // Initialize AuthManager
-        authManager = new AuthManager(this);
-
-        // Initialize MeshansRepository
-        Firebase_Meshans_Data_linkDao firebaseDao = new Firebase_Meshans_Data_linkDao();
-        MeshansDao roomDao = MeshaDatabase.Get_database(this).meshansDao();
-        meshansRepository = new MeshansRepository(firebaseDao, roomDao);
-
+        
         // Initialize views
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);
@@ -63,8 +93,64 @@ public class SignInActivity extends AppCompatActivity {
             startActivity(new Intent(SignInActivity.this, Dashboard.class));
             finish();
         });
+        
+        // Initialize dependencies asynchronously
+        initializeDependenciesAsync();
+    }
+    
+    /**
+     * Initializes the AuthManager and MeshansRepository on a background thread
+     * to avoid blocking the main thread during startup.
+     */
+    private void initializeDependenciesAsync() {
+        new Thread(() -> {
+            // Initialize AuthManager (lightweight operation, but still off main thread)
+            authManager = new AuthManager(this);
+            
+            // Initialize MeshansRepository (database operations)
+            Firebase_Meshans_Data_linkDao firebaseDao = new Firebase_Meshans_Data_linkDao();
+            MeshansDao roomDao = MeshaDatabase.Get_database(this).meshansDao();
+            meshansRepository = new MeshansRepository(firebaseDao, roomDao);
+            
+            // Enable UI buttons after initialization is complete
+            runOnUiThread(() -> {
+                signInButton.setEnabled(true);
+                googleSignInButton.setEnabled(true);
+            });
+        }).start();
     }
 
+    /**
+     * Shows or hides a loading indicator.
+     * 
+     * @param show True to show loading indicator, false to hide it
+     * @param message Optional message to display with the loading state
+     */
+    private void showLoading(boolean show, String message) {
+        runOnUiThread(() -> {
+            // Disable buttons during loading
+            if (signInButton != null) {
+                signInButton.setEnabled(!show);
+            }
+            if (googleSignInButton != null) {
+                googleSignInButton.setEnabled(!show);
+            }
+            
+            // Show loading message as a toast if provided
+            if (show && message != null && !message.isEmpty()) {
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * Attempts to sign in the user with the provided email and password.
+     * <p>
+     * Validates the input fields and uses the AuthManager to authenticate
+     * the user with Firebase Authentication. On success, fetches the user's
+     * data from the repository.
+     * </p>
+     */
     private void signIn() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
@@ -74,8 +160,8 @@ public class SignInActivity extends AppCompatActivity {
             return;
         }
 
-        // Show a loading indicator (optional)
-        // showLoadingIndicator();
+        // Show loading indicator
+        showLoading(true, "Signing in...");
 
         authManager.signInWithEmail(email, password, new AuthManager.OnAuthCompleteListener() {
             @Override
@@ -86,35 +172,47 @@ public class SignInActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Exception exception) {
-                // hideLoadingIndicator();
+                // Hide loading indicator
+                showLoading(false, null);
                 Toast.makeText(SignInActivity.this, "Sign-in failed: " + exception.getMessage(),
                         Toast.LENGTH_SHORT).show();
             }
         });
     }
 
+    /**
+     * Fetches user data from the repository and navigates to the Dashboard.
+     * <p>
+     * After successful authentication, this method fetches the user's profile
+     * data from Firebase. If no profile exists, it creates a new one.
+     * </p>
+     *
+     * @param user The authenticated Firebase user
+     */
     private void fetchUserDataAndNavigate(FirebaseUser user) {
+        // Update loading message
+        showLoading(true, "Loading profile...");
+        
         meshansRepository.getUser(user.getUid())
                 .addOnSuccessListener(meshansUser -> {
-                    // hideLoadingIndicator();
                     if (meshansUser != null) {
                         // User data found, navigate to dashboard
+                        showLoading(false, null);
                         Toast.makeText(SignInActivity.this, "Sign-in successful", Toast.LENGTH_SHORT).show();
                         startActivity(new Intent(SignInActivity.this, Dashboard.class));
                         finish();
                     } else {
                         // User authenticated but no data in Firebase
-                        // This could happen if authentication succeeded but user creation failed
-                        Toast.makeText(SignInActivity.this,
-                                "Account authenticated but profile data not found",
-                                Toast.LENGTH_SHORT).show();
-
+                        // Update loading message
+                        showLoading(true, "Setting up profile...");
+                        
                         // Create a new user profile
                         createNewUserProfile(user);
                     }
                 })
                 .addOnFailureListener(e -> {
-                    // hideLoadingIndicator();
+                    showLoading(false, null);
+                    Log.e("SignInActivity", "Failed to fetch user data", e);
                     Toast.makeText(SignInActivity.this,
                             "Failed to fetch user data: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
@@ -125,6 +223,15 @@ public class SignInActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Creates a new user profile in the database.
+     * <p>
+     * This method is called when a user successfully authenticates but
+     * no corresponding user profile is found in the database.
+     * </p>
+     *
+     * @param user The authenticated Firebase user for whom to create a profile
+     */
     private void createNewUserProfile(FirebaseUser user) {
         // Create new Meshans object with required fields
         Meshans meshan = new Meshans();
@@ -137,21 +244,86 @@ public class SignInActivity extends AppCompatActivity {
         // Save user details using repository
         meshansRepository.saveUser(meshan)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(SignInActivity.this, "User profile created", Toast.LENGTH_SHORT).show();
+                    // Profile created, now navigate to dashboard
+                    showLoading(false, null);
+                    Toast.makeText(SignInActivity.this, "Profile created successfully", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(SignInActivity.this, Dashboard.class));
                     finish();
                 })
                 .addOnFailureListener(e -> {
+                    showLoading(false, null);
+                    Log.e("SignInActivity", "Failed to create user profile", e);
                     Toast.makeText(SignInActivity.this,
-                            "Failed to create user profile: " + e.getMessage(),
+                            "Failed to create profile: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
-                    // Navigate to dashboard anyway
+                    
+                    // Despite the error, navigate to Dashboard as the user is authenticated
                     startActivity(new Intent(SignInActivity.this, Dashboard.class));
                     finish();
                 });
     }
 
-    // Also update the Google Sign-In handling to use the same flow
+    /**
+     * Navigates to the SignUpActivity.
+     * <p>
+     * Called when the user clicks on the sign-up text.
+     * </p>
+     */
+    private void navigateToSignUp() {
+        Intent intent = new Intent(this, SignUpActivity.class);
+        startActivity(intent);
+    }
+
+    /**
+     * Initiates the password reset process.
+     * <p>
+     * Validates that an email is provided and uses the AuthManager
+     * to send a password reset email to the user.
+     * </p>
+     */
+    private void resetPassword() {
+        String email = emailEditText.getText().toString().trim();
+        if (email.isEmpty()) {
+            Toast.makeText(this, "Please enter your email", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        authManager.resetPassword(email, new AuthManager.OnAuthCompleteListener() {
+            @Override
+            public void onSuccess(FirebaseUser user) {
+                Toast.makeText(SignInActivity.this, "Password reset email sent", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Exception exception) {
+                Toast.makeText(SignInActivity.this, "Failed to send reset email: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * Initiates the Google Sign-In process.
+     * <p>
+     * Gets the Google Sign-In intent from the AuthManager and
+     * starts the activity for result.
+     * </p>
+     */
+    private void startGoogleSignIn() {
+        Intent signInIntent = authManager.getGoogleSignInIntent();
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    /**
+     * Handles the result from the Google Sign-In activity.
+     * <p>
+     * Processes the result from the Google Sign-In intent and uses
+     * the AuthManager to authenticate with Firebase using the Google credentials.
+     * </p>
+     *
+     * @param requestCode The request code originally supplied to startActivityForResult
+     * @param resultCode The result code returned by the child activity
+     * @param data An Intent which can return result data to the caller
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -173,36 +345,4 @@ public class SignInActivity extends AppCompatActivity {
             });
         }
     }
-
-    private void navigateToSignUp() {
-        Intent intent = new Intent(this, SignUpActivity.class);
-        startActivity(intent);
-    }
-
-    private void resetPassword() {
-        String email = emailEditText.getText().toString().trim();
-        if (email.isEmpty()) {
-            Toast.makeText(this, "Please enter your email", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        authManager.resetPassword(email, new AuthManager.OnAuthCompleteListener() {
-            @Override
-            public void onSuccess(FirebaseUser user) {
-                Toast.makeText(SignInActivity.this, "Password reset email sent", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onFailure(Exception exception) {
-                Toast.makeText(SignInActivity.this, "Failed to send reset email: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void startGoogleSignIn() {
-        Intent signInIntent = authManager.getGoogleSignInIntent();
-        startActivityForResult(signInIntent, RC_SIGN_IN);
-    }
-
-
 }
