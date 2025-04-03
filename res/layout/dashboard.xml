@@ -26,8 +26,8 @@
                 android:layout_marginTop="16dp"
                 android:background="@drawable/round_image_with_shadow"
                 android:clipToOutline="true"
-                android:src="@drawable/icon_mesha"
                 android:contentDescription="Profile"
+                android:src="@drawable/icon_mesha"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -80,6 +80,23 @@
                 app:lottie_autoPlay="true"
                 app:lottie_loop="true"
                 app:lottie_rawRes="@raw/piechart" />
+
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/portal"
+                android:layout_width="75dp"
+                android:layout_height="65dp"
+                android:layout_marginStart="7dp"
+                android:layout_marginTop="81dp"
+                android:layout_marginEnd="317dp"
+                android:layout_marginBottom="576dp"
+                android:alpha="0.6"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:lottie_autoPlay="true"
+                app:lottie_loop="true"
+                app:lottie_rawRes="@raw/portal" />
 
             <com.airbnb.lottie.LottieAnimationView
                 android:id="@+id/bubbles"

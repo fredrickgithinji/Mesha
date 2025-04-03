@@ -11,14 +11,20 @@ import androidx.room.TypeConverters;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.dzovah.mesha.Database.Daos.AlphaAccountDao;
+import com.dzovah.mesha.Database.Daos.PAlphaAccountDao;
 import com.dzovah.mesha.Database.Daos.BetaAccountDao;
+import com.dzovah.mesha.Database.Daos.PBetaAccountDao;
 import com.dzovah.mesha.Database.Daos.CategoryDao;
 import com.dzovah.mesha.Database.Daos.MeshansDao;
 import com.dzovah.mesha.Database.Daos.TransactionDao;
+import com.dzovah.mesha.Database.Daos.PTransactionDao;
 import com.dzovah.mesha.Database.Entities.AlphaAccount;
 import com.dzovah.mesha.Database.Entities.BetaAccount;
+import com.dzovah.mesha.Database.Entities.PAlphaAccount;
+import com.dzovah.mesha.Database.Entities.PBetaAccount;
 import com.dzovah.mesha.Database.Entities.Category;
 import com.dzovah.mesha.Database.Entities.Transaction;
+import com.dzovah.mesha.Database.Entities.PTransaction;
 import com.dzovah.mesha.Database.Entities.Meshans;
 import com.dzovah.mesha.Database.Utils.TransactionTypeConverter;
 
@@ -50,6 +56,9 @@ import java.util.concurrent.Executors;
         AlphaAccount.class,
         BetaAccount.class,
         Transaction.class,
+            PAlphaAccount.class,
+            PBetaAccount.class,
+            PTransaction.class,
         Category.class,
         Meshans.class
     },
@@ -66,6 +75,14 @@ public abstract class MeshaDatabase extends RoomDatabase {
      * @return The AlphaAccountDao instance for AlphaAccount database operations
      */
     public abstract AlphaAccountDao alphaAccountDao();
+
+    /**
+     * Abstract method to access the PAlphaAccount Data Access Object.
+     * Room automatically generates the implementation at compile time.
+     *
+     * @return The AlphaAccountDao instance for AlphaAccount database operations
+     */
+    public abstract PAlphaAccountDao PalphaAccountDao();
     
     /**
      * Abstract method to access the BetaAccount Data Access Object.
@@ -74,13 +91,24 @@ public abstract class MeshaDatabase extends RoomDatabase {
      * @return The BetaAccountDao instance for BetaAccount database operations
      */
     public abstract BetaAccountDao betaAccountDao();
-    
+
+
+    /**
+     * Abstract method to access the PBetaAccount Data Access Object.
+     * Room automatically generates the implementation at compile time.
+     *
+     * @return The BetaAccountDao instance for BetaAccount database operations
+     */
+    public abstract PBetaAccountDao PbetaAccountDao();
+
     /**
      * Abstract method to access the Transaction Data Access Object.
      * Room automatically generates the implementation at compile time.
      *
      * @return The TransactionDao instance for Transaction database operations
+     *
      */
+
     public abstract TransactionDao transactionDao();
     
     /**
@@ -88,9 +116,19 @@ public abstract class MeshaDatabase extends RoomDatabase {
      * Room automatically generates the implementation at compile time.
      *
      * @return The CategoryDao instance for Category database operations
+     *
      */
+
+
+    public abstract PTransactionDao PtransactionDao();
+
+    /**
+     * Abstract method to access the Category Data Access Object.
+     * Room automatically generates the implementation at compile time.
+     *
+     * @return The CategoryDao instance for Category database operations */
     public abstract CategoryDao categoryDao();
-    
+
     /**
      * Abstract method to access the Meshans (user) Data Access Object.
      * Room automatically generates the implementation at compile time.

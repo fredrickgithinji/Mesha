@@ -4,6 +4,8 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+import com.dzovah.mesha.Database.Interfaces.AccountOperations;
+
 import java.util.List;
 
 /**
@@ -23,7 +25,7 @@ import java.util.List;
  * @see BetaAccount
  */
 @Entity(tableName = "Alpha_accounts")
-public class AlphaAccount {
+public class AlphaAccount implements AccountOperations {
 
     /**
      * Unique identifier for the AlphaAccount.
@@ -156,5 +158,66 @@ public class AlphaAccount {
             totalBalance += beta.getBetaAccountBalance();
         }
         this.alphaAccountBalance = totalBalance;
+    }
+
+    /**
+     * Updates the account balance based on transactions.
+     * <p>
+     * This implementation is a placeholder as balance is updated through updateBalanceFromBetaAccounts.
+     * The actual update should be done through TransactionManager to ensure data integrity.
+     * </p>
+     *
+     * @return true if the update was successful, false otherwise
+     */
+    @Override
+    public boolean updateBalance() {
+        // This is handled externally by the TransactionManager
+        // as we need access to the DAOs to fetch the associated BetaAccounts
+        return true;
+    }
+
+    /**
+     * Validates the account data to ensure integrity.
+     * <p>
+     * Checks if the account has valid data according to business rules.
+     * </p>
+     *
+     * @return true if the account data is valid, false otherwise
+     */
+    @Override
+    public boolean validateData() {
+        // Basic validation: name should not be empty and balance should be valid
+        return alphaAccountName != null && !alphaAccountName.trim().isEmpty()
+                && alphaAccountIcon != null;
+    }
+
+    /**
+     * Gets the account identifier.
+     *
+     * @return The unique identifier for the account
+     */
+    @Override
+    public int getAccountId() {
+        return alphaAccountId;
+    }
+
+    /**
+     * Gets the account name.
+     *
+     * @return The name of the account
+     */
+    @Override
+    public String getAccountName() {
+        return alphaAccountName;
+    }
+
+    /**
+     * Gets the account balance.
+     *
+     * @return The current balance of the account
+     */
+    @Override
+    public double getAccountBalance() {
+        return alphaAccountBalance;
     }
 }

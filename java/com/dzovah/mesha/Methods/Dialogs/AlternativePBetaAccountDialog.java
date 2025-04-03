@@ -17,10 +17,10 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.dzovah.mesha.Activities.Adapters.SelectBetaAccountAdapter;
-import com.dzovah.mesha.Database.Entities.AlphaAccount;
-import com.dzovah.mesha.Database.Entities.BetaAccount;
-import com.dzovah.mesha.Database.Entities.Transaction;
+import com.dzovah.mesha.Activities.Adapters.SelectPBetaAccountAdapter;
+import com.dzovah.mesha.Database.Entities.PAlphaAccount;
+import com.dzovah.mesha.Database.Entities.PBetaAccount;
+import com.dzovah.mesha.Database.Entities.PTransaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import com.dzovah.mesha.Database.Utils.TransactionType;
@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Dialog for selecting an alternative account when a transaction requires more funds than available.
  * <p>
- * This dialog is displayed when a user attempts to create a debit transaction with an amount 
+ * This dialog is displayed when a user attempts to create a debit transaction with an amount
  * greater than the current balance of the selected BetaAccount. It allows the user to:
  * <ul>
  *   <li>View other accounts with sufficient funds</li>
@@ -52,41 +52,41 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Electra Magus
  * @version 1.0
  * @see AddTransactionDialog
- * @see BetaAccount
- * @see Transaction
+ * @see PBetaAccount
+ * @see PTransaction
  */
-public class AlternativeBetaAccountDialog extends Dialog {
+public class AlternativePBetaAccountDialog extends Dialog {
     /** The application context used for UI operations */
     private final Context context;
-    
+
     /** The database instance for data access */
     private final MeshaDatabase database;
-    
+
     /** The BetaAccount that needs funds (destination account) */
-    private final BetaAccount sourceBetaAccount;
-    
+    private final PBetaAccount sourceBetaAccount;
+
     /** The transaction amount required */
     private final double transactionAmount;
-    
+
     /** The description of the original transaction */
     private final String transactionDescription;
-    
+
     /** The selected account to transfer funds from */
-    private BetaAccount selectedTargetAccount = null;
-    
+    private PBetaAccount selectedTargetAccount = null;
+
     /** Listener to notify when the fund transfer is completed */
     private OnTransactionCompletedListener listener;
-    
+
     /** Progress indicator for loading and processing */
     private ProgressBar progressBar;
     private TextView statusTextView;
-    
+
     /** Main thread handler for UI updates */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    
+
     /** Dedicated executor for database operations */
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
-    
+
     /** Flag to track if the dialog is active to prevent memory leaks */
     private final AtomicBoolean isActive = new AtomicBoolean(true);
 
@@ -119,9 +119,9 @@ public class AlternativeBetaAccountDialog extends Dialog {
      * @param transactionAmount The amount needed for the original transaction
      * @param transactionDescription The description of the original transaction
      */
-    public AlternativeBetaAccountDialog(Context context, MeshaDatabase database, 
-                                        BetaAccount sourceBetaAccount,
-                                        double transactionAmount, 
+    public AlternativePBetaAccountDialog(Context context, MeshaDatabase database,
+                                        PBetaAccount sourceBetaAccount,
+                                        double transactionAmount,
                                         String transactionDescription) {
         super(context);
         this.context = context;
@@ -129,23 +129,23 @@ public class AlternativeBetaAccountDialog extends Dialog {
         this.sourceBetaAccount = sourceBetaAccount;
         this.transactionAmount = transactionAmount;
         this.transactionDescription = transactionDescription;
-        
+
         // Set a dismiss listener to handle cleanup
         setOnDismissListener(dialog -> cleanupResources());
-        
+
         setupDialog();
     }
-    
+
     /**
      * Cleans up resources to prevent memory leaks when the dialog is dismissed.
      */
     private void cleanupResources() {
         // Mark dialog as inactive to prevent further callbacks
         isActive.set(false);
-        
+
         // Remove all callbacks from the handler
         mainHandler.removeCallbacksAndMessages(null);
-        
+
         // Shutdown the executor service (gracefully)
         dbExecutor.shutdown();
     }
@@ -173,7 +173,7 @@ public class AlternativeBetaAccountDialog extends Dialog {
      */
     private void setupDialog() {
         if (!isActive.get()) return;
-        
+
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_alternative_beta_account, null);
         setContentView(dialogView);
@@ -182,19 +182,19 @@ public class AlternativeBetaAccountDialog extends Dialog {
         RecyclerView rvAccounts = dialogView.findViewById(R.id.rvAlternativeAccounts);
         Button btnCancel = dialogView.findViewById(R.id.btnCancel);
         Button btnProceed = dialogView.findViewById(R.id.btnProceed);
-        
+
         // Initialize progress indicators if they exist in the layout
         progressBar = dialogView.findViewById(R.id.progressBar);
 
         // Set message
-        String message = "Insufficient funds in " + sourceBetaAccount.getBetaAccountName() + 
-                         ". Available: " + CurrencyFormatter.format(sourceBetaAccount.getBetaAccountBalance()) + 
-                         ", Required: " + CurrencyFormatter.format(transactionAmount);
+        String message = "Insufficient funds in " + sourceBetaAccount.getPBetaAccountName() +
+                ". Available: " + CurrencyFormatter.format(sourceBetaAccount.getPBetaAccountBalance()) +
+                ", Required: " + CurrencyFormatter.format(transactionAmount);
         tvMessage.setText(message);
 
         // Set up RecyclerView
         rvAccounts.setLayoutManager(new LinearLayoutManager(context));
-        SelectBetaAccountAdapter adapter = new SelectBetaAccountAdapter(context);
+        SelectPBetaAccountAdapter adapter = new SelectPBetaAccountAdapter(context);
         rvAccounts.setAdapter(adapter);
 
         // Load alternative accounts
@@ -212,14 +212,14 @@ public class AlternativeBetaAccountDialog extends Dialog {
             if (!isActive.get()) return;
             dismiss();
         });
-        
+
         btnProceed.setEnabled(false); // Disable until an account is selected
         btnProceed.setOnClickListener(v -> {
             if (!isActive.get()) return;
-            
+
             // Disable button to prevent multiple clicks
             btnProceed.setEnabled(false);
-            
+
             if (selectedTargetAccount != null) {
                 processTransaction();
             } else {
@@ -232,27 +232,27 @@ public class AlternativeBetaAccountDialog extends Dialog {
     /**
      * Loads and displays alternative accounts with sufficient balance.
      * <p>
-     * This method asynchronously fetches all BetaAccounts from the database, 
+     * This method asynchronously fetches all BetaAccounts from the database,
      * filters them to include only those with sufficient balance for the transaction,
      * and updates the adapter with the filtered list of accounts.
      * </p>
      *
      * @param adapter The adapter to populate with the accounts data
      */
-    private void loadAlternativeAccounts(SelectBetaAccountAdapter adapter) {
+    private void loadAlternativeAccounts(SelectPBetaAccountAdapter adapter) {
         showLoading("Loading accounts...");
-        
+
         executeIfActive(() -> {
             try {
                 // Get all beta accounts from the same alpha account that have sufficient balance
-                List<BetaAccount> accounts = database.betaAccountDao().getAllBetaAccounts();
-                
+                List<PBetaAccount> accounts = database.PbetaAccountDao().getAllPBetaAccounts();
+
                 // Filter out the source account and accounts with insufficient balance
-                accounts.removeIf(account -> 
-                    account.getBetaAccountId() == sourceBetaAccount.getBetaAccountId() || 
-                    account.getBetaAccountBalance() < transactionAmount
+                accounts.removeIf(account ->
+                        account.getPBetaAccountId() == sourceBetaAccount.getPBetaAccountId() ||
+                                account.getPBetaAccountBalance() < transactionAmount
                 );
-                
+
                 postToMainThreadIfActive(() -> {
                     hideLoading();
                     adapter.setAccounts(accounts);
@@ -289,78 +289,78 @@ public class AlternativeBetaAccountDialog extends Dialog {
      */
     private void processTransaction() {
         if (!isActive.get()) return;
-        
+
         showLoading("Processing transfer...");
-        
+
         // Get the Alpha account names for better descriptions
         executeIfActive(() -> {
             try {
                 // Get Alpha account names
-                AlphaAccount sourceAlpha = database.alphaAccountDao().getAlphaAccountById(
-                    sourceBetaAccount.getAlphaAccountId());
-                AlphaAccount targetAlpha = database.alphaAccountDao().getAlphaAccountById(
-                    selectedTargetAccount.getAlphaAccountId());
-                
-                String sourceAlphaName = sourceAlpha != null ? sourceAlpha.getAlphaAccountName() : "Unknown";
-                String targetAlphaName = targetAlpha != null ? targetAlpha.getAlphaAccountName() : "Unknown";
-                
+                PAlphaAccount sourceAlpha = database.PalphaAccountDao().getPAlphaAccountById(
+                        sourceBetaAccount.getPAlphaAccountId());
+                PAlphaAccount targetAlpha = database.PalphaAccountDao().getPAlphaAccountById(
+                        selectedTargetAccount.getPAlphaAccountId());
+
+                String sourceAlphaName = sourceAlpha != null ? sourceAlpha.getPAlphaAccountName() : "Unknown";
+                String targetAlphaName = targetAlpha != null ? targetAlpha.getPAlphaAccountName() : "Unknown";
+
                 updateLoadingStatus("Creating transactions...");
-                
+
                 // Create a debit transaction on the target account
-                Transaction debitTransaction = new Transaction(
-                    selectedTargetAccount.getAlphaAccountId(),
-                    selectedTargetAccount.getBetaAccountId(),
-                    1,  // General category
-                    "Transfer to " + sourceBetaAccount.getBetaAccountName() + " in " + 
-                    sourceAlphaName + " Alpha Account: " + transactionDescription,
-                    transactionAmount,
-                    TransactionType.DEBIT,
-                    System.currentTimeMillis()
+                PTransaction debitTransaction = new PTransaction(
+                        selectedTargetAccount.getPAlphaAccountId(),
+                        selectedTargetAccount.getPBetaAccountId(),
+                        1,  // General category
+                        "Transfer to " + sourceBetaAccount.getPBetaAccountName() + " in " +
+                                sourceAlphaName + " Alpha Account: " + transactionDescription,
+                        transactionAmount,
+                        TransactionType.DEBIT,
+                        System.currentTimeMillis()
                 );
 
                 // Create a credit transaction on the source account
-                Transaction creditTransaction = new Transaction(
-                    sourceBetaAccount.getAlphaAccountId(),
-                    sourceBetaAccount.getBetaAccountId(),
-                    1,  // General category
-                    "Transfer from " + selectedTargetAccount.getBetaAccountName() + " in " +
-                    targetAlphaName + " Alpha Account: " + transactionDescription,
-                    transactionAmount,
-                    TransactionType.CREDIT,
-                    System.currentTimeMillis()
+                PTransaction creditTransaction = new PTransaction(
+                        sourceBetaAccount.getPAlphaAccountId(),
+                        sourceBetaAccount.getPBetaAccountId(),
+                        1,  // General category
+                        "Transfer from " + selectedTargetAccount.getPBetaAccountName() + " in " +
+                                targetAlphaName + " Alpha Account: " + transactionDescription,
+                        transactionAmount,
+                        TransactionType.CREDIT,
+                        System.currentTimeMillis()
                 );
 
                 updateLoadingStatus("Updating balances...");
-                
+
                 // Use a database transaction to ensure consistency
                 database.runInTransaction(() -> {
                     // Insert both transactions
-                    database.transactionDao().insert(debitTransaction);
-                    database.transactionDao().insert(creditTransaction);
-                    
+                    database.PtransactionDao().insert(debitTransaction);
+                    database.PtransactionDao().insert(creditTransaction);
+
                     // Update beta account balances
                     // Target account (debit)
-                    double newTargetBalance = selectedTargetAccount.getBetaAccountBalance() - transactionAmount;
-                    selectedTargetAccount.setBetaAccountBalance(newTargetBalance);
-                    database.betaAccountDao().update(selectedTargetAccount);
-                    
+                    double newTargetBalance = selectedTargetAccount.getPBetaAccountBalance() - transactionAmount;
+                    selectedTargetAccount.setPBetaAccountBalance(newTargetBalance);
+                    database.PbetaAccountDao().update(selectedTargetAccount);
+
                     // Source account (credit)
-                    double newSourceBalance = sourceBetaAccount.getBetaAccountBalance() + transactionAmount;
-                    sourceBetaAccount.setBetaAccountBalance(newSourceBalance);
-                    database.betaAccountDao().update(sourceBetaAccount);
+                    double newSourceBalance = sourceBetaAccount.getPBetaAccountBalance() + transactionAmount;
+                    sourceBetaAccount.setPBetaAccountBalance(newSourceBalance);
+                    database.PbetaAccountDao().update(sourceBetaAccount);
 
                     // Update alpha account balances if needed
-                    if (selectedTargetAccount.getAlphaAccountId() != sourceBetaAccount.getAlphaAccountId()) {
+                    if (selectedTargetAccount.getPAlphaAccountId() != sourceBetaAccount.getPAlphaAccountId()) {
                         if (sourceAlpha != null && targetAlpha != null) {
                             // Update source alpha (credit)
-                            double newSourceAlphaBalance = sourceAlpha.getAlphaAccountBalance() + transactionAmount;
-                            sourceAlpha.setAlphaAccountBalance(newSourceAlphaBalance);
-                            database.alphaAccountDao().update(sourceAlpha);
-                            
+                            double newSourceAlphaBalance = sourceAlpha.getPAlphaAccountBalance() + transactionAmount;
+                            sourceAlpha.setPAlphaAccountBalance(newSourceAlphaBalance);
+                            database.PalphaAccountDao().update(sourceAlpha);
+
                             // Update target alpha (debit)
-                            double newTargetAlphaBalance = targetAlpha.getAlphaAccountBalance() - transactionAmount;
-                            targetAlpha.setAlphaAccountBalance(newTargetAlphaBalance);
-                            database.alphaAccountDao().update(targetAlpha);
+                            double newTargetAlphaBalance = targetAlpha.getPAlphaAccountBalance() - transactionAmount;
+                            targetAlpha.setPAlphaAccountBalance(newTargetAlphaBalance);
+                            database.PalphaAccountDao().update(targetAlpha);
                         }
                     }
                 });
@@ -377,17 +377,17 @@ public class AlternativeBetaAccountDialog extends Dialog {
                 e.printStackTrace();
                 postToMainThreadIfActive(() -> {
                     hideLoading();
-                    Toast.makeText(context, "Error processing transaction: " + e.getMessage(), 
-                        Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Error processing transaction: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
                 });
             }
         });
     }
-    
+
     /**
      * Helper method to execute a task on the background thread only if the dialog is active.
      * Helps prevent memory leaks by not executing tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to execute
      */
     private void executeIfActive(Runnable task) {
@@ -399,11 +399,11 @@ public class AlternativeBetaAccountDialog extends Dialog {
             });
         }
     }
-    
+
     /**
      * Helper method to post a task to the main thread only if the dialog is active.
      * Helps prevent memory leaks by not posting tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to post to the main thread
      */
     private void postToMainThreadIfActive(Runnable task) {
@@ -415,7 +415,7 @@ public class AlternativeBetaAccountDialog extends Dialog {
             });
         }
     }
-    
+
     /**
      * Shows a loading indicator with a status message
      * @param message The status message to display
@@ -429,7 +429,7 @@ public class AlternativeBetaAccountDialog extends Dialog {
             }
         });
     }
-    
+
     /**
      * Updates the loading status message
      * @param message The new status message
@@ -441,7 +441,7 @@ public class AlternativeBetaAccountDialog extends Dialog {
             }
         });
     }
-    
+
     /**
      * Hides the loading indicator
      */
@@ -453,7 +453,7 @@ public class AlternativeBetaAccountDialog extends Dialog {
             }
         });
     }
-    
+
     @Override
     public void dismiss() {
         // Clean up resources before dismissing

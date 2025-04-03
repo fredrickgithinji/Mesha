@@ -15,8 +15,8 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import com.dzovah.mesha.Activities.Adapters.IconAdapter;
-import com.dzovah.mesha.Database.Entities.AlphaAccount;
-import com.dzovah.mesha.Database.Entities.BetaAccount;
+import com.dzovah.mesha.Database.Entities.PAlphaAccount;
+import com.dzovah.mesha.Database.Entities.PBetaAccount;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.R;
 import com.google.android.material.textfield.TextInputEditText;
@@ -53,57 +53,57 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Electra Magus
  * @version 1.0
- * @see AlphaAccount
- * @see BetaAccount
+ * @see PAlphaAccount
+ * @see PBetaAccount
  * @see MeshaDatabase
  */
-public class CreateAccountDialog {
+public class CreatePAccountDialog {
     /**
      * The application context used for UI operations.
      */
     private final Context context;
-    
+
     /**
      * The database instance for data access.
      */
     private final MeshaDatabase database;
-    
+
     /**
      * Listener to notify when an account is successfully created.
      */
     private OnAccountCreatedListener listener;
-    
+
     /**
      * The AlertDialog instance that displays the UI.
      */
     private AlertDialog dialog;
-    
+
     /**
      * Flag indicating whether the dialog is creating a BetaAccount (true) or AlphaAccount (false).
      */
     private final boolean isBetaAccount;
-    
+
     /**
      * The ID of the parent AlphaAccount (only used when creating a BetaAccount).
      */
     private final int parentAlphaId;
-    
+
     /**
      * Progress indicator for loading and processing.
      */
     private ProgressBar progressBar;
     private TextView statusTextView;
-    
+
     /**
      * Main thread handler for UI updates.
      */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    
+
     /**
      * Dedicated executor for database operations.
      */
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
-    
+
     /**
      * Flag to track if the dialog is active to prevent memory leaks.
      */
@@ -120,7 +120,7 @@ public class CreateAccountDialog {
     public interface OnAccountCreatedListener {
         /**
          * Called when an account is successfully created.
-         * 
+         *
          * @param account The newly created account object (either AlphaAccount or BetaAccount)
          */
         void onAccountCreated(Object account); // Changed to Object to handle both types
@@ -135,7 +135,7 @@ public class CreateAccountDialog {
      * @param context The context in which the dialog will be shown
      * @param database The database instance for accessing data
      */
-    public CreateAccountDialog(Context context, MeshaDatabase database) {
+    public CreatePAccountDialog(Context context, MeshaDatabase database) {
         this.context = context;
         this.database = database;
         this.isBetaAccount = false;
@@ -153,7 +153,7 @@ public class CreateAccountDialog {
      * @param database The database instance for accessing data
      * @param alphaAccountId The ID of the parent AlphaAccount to which the new BetaAccount will belong
      */
-    public CreateAccountDialog(Context context, MeshaDatabase database, int alphaAccountId) {
+    public CreatePAccountDialog(Context context, MeshaDatabase database, int alphaAccountId) {
         this.context = context;
         this.database = database;
         this.isBetaAccount = true;
@@ -183,28 +183,28 @@ public class CreateAccountDialog {
      */
     public void show() {
         if (!isActive.get()) return;
-        
+
         View dialogView = getView();
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(dialogView);
         dialog = builder.create();
-        
+
         // Set dismiss listener to clean up resources
         dialog.setOnDismissListener(dialogInterface -> cleanupResources());
-        
+
         dialog.show();
     }
-    
+
     /**
      * Cleans up resources to prevent memory leaks when the dialog is dismissed.
      */
     private void cleanupResources() {
         // Mark dialog as inactive to prevent further callbacks
         isActive.set(false);
-        
+
         // Remove all callbacks from the handler
         mainHandler.removeCallbacksAndMessages(null);
-        
+
         // Shutdown the executor service
         dbExecutor.shutdown();
     }
@@ -220,13 +220,13 @@ public class CreateAccountDialog {
      */
     private View getView() {
         if (!isActive.get()) return null;
-        
+
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_create_account, null);
         TextInputEditText etAccountName = dialogView.findViewById(R.id.etAccountName);
         RecyclerView rvIcons = dialogView.findViewById(R.id.rvIcons);
         Button btnCreate = dialogView.findViewById(R.id.btnCreate);
         Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-        
+
         // Initialize progress indicators if they exist in the layout
         progressBar = dialogView.findViewById(R.id.progressBar);
 
@@ -244,13 +244,13 @@ public class CreateAccountDialog {
 
         btnCreate.setOnClickListener(v -> {
             if (!isActive.get()) return;
-            
+
             String accountName = etAccountName.getText().toString();
             if (accountName.isEmpty()) {
                 Toast.makeText(context, "Please enter an account name", Toast.LENGTH_SHORT).show();
                 return;
             }
-            
+
             // Disable button to prevent multiple clicks
             btnCreate.setEnabled(false);
 
@@ -313,16 +313,16 @@ public class CreateAccountDialog {
      */
     private void createAlphaAccount(String accountName, String selectedIcon) {
         if (!isActive.get()) return;
-        
+
         showLoading("Creating alpha account...");
-        
+
         try {
             String iconPath = selectedIcon != null ? "Assets/icons/" + selectedIcon : "Assets/icons/default_icon.png";
-            AlphaAccount newAccount = new AlphaAccount(accountName, iconPath, 0.0);
-            
+            PAlphaAccount newAccount = new PAlphaAccount(accountName, iconPath, 0.0);
+
             executeIfActive(() -> {
                 try {
-                    database.alphaAccountDao().insert(newAccount);
+                    database.PalphaAccountDao().insert(newAccount);
                     handleSuccess(newAccount);
                 } catch (Exception e) {
                     handleError(e);
@@ -348,21 +348,21 @@ public class CreateAccountDialog {
      */
     private void createBetaAccount(String accountName, String selectedIcon) {
         if (!isActive.get()) return;
-        
+
         showLoading("Creating beta account...");
-        
+
         try {
             String iconPath = selectedIcon != null ? "Assets/icons/" + selectedIcon : "Assets/icons/default_icon.png";
-            BetaAccount newAccount = new BetaAccount(parentAlphaId, accountName, iconPath, 0.0);
-            
+            PBetaAccount newAccount = new PBetaAccount(parentAlphaId, accountName, iconPath, 0.0);
+
             executeIfActive(() -> {
                 try {
                     updateLoadingStatus("Saving to database...");
-                    database.betaAccountDao().insert(newAccount);
-                    
+                    database.PbetaAccountDao().insert(newAccount);
+
                     updateLoadingStatus("Updating parent account...");
-                    database.betaAccountDao().updateAlphaAccountBalance(parentAlphaId);
-                    
+                    database.PbetaAccountDao().updatePAlphaAccountBalance(parentAlphaId);
+
                     handleSuccess(newAccount);
                 } catch (Exception e) {
                     handleError(e);
@@ -409,7 +409,7 @@ public class CreateAccountDialog {
         postToMainThreadIfActive(() -> {
             hideLoading();
             Toast.makeText(context, "Failed to create account", Toast.LENGTH_SHORT).show();
-            
+
             // Re-enable create button
             if (dialog != null) {
                 Button btnCreate = dialog.findViewById(R.id.btnCreate);
@@ -419,11 +419,11 @@ public class CreateAccountDialog {
             }
         });
     }
-    
+
     /**
      * Helper method to execute a task on the background thread only if the dialog is active.
      * Helps prevent memory leaks by not executing tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to execute
      */
     private void executeIfActive(Runnable task) {
@@ -435,11 +435,11 @@ public class CreateAccountDialog {
             });
         }
     }
-    
+
     /**
      * Helper method to post a task to the main thread only if the dialog is active.
      * Helps prevent memory leaks by not posting tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to post to the main thread
      */
     private void postToMainThreadIfActive(Runnable task) {
@@ -451,7 +451,7 @@ public class CreateAccountDialog {
             });
         }
     }
-    
+
     /**
      * Shows a loading indicator with a status message
      * @param message The status message to display
@@ -465,7 +465,7 @@ public class CreateAccountDialog {
             }
         });
     }
-    
+
     /**
      * Updates the loading status message
      * @param message The new status message
@@ -477,7 +477,7 @@ public class CreateAccountDialog {
             }
         });
     }
-    
+
     /**
      * Hides the loading indicator
      */

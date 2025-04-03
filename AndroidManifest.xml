@@ -8,6 +8,8 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
 
     <application
@@ -22,7 +24,7 @@
         android:theme="@style/Theme.Mesha"
         tools:targetApi="31" >
 
-    <activity android:name=".Activities.Dashboard"
+    <activity android:name=".Activities.AuthenticationActivity"
         android:theme="@style/Theme.MeshaApp.Fullscreen"
         android:hardwareAccelerated="true"
         android:exported="true">
@@ -32,11 +34,42 @@
         </intent-filter>
     </activity>
 
+    <activity android:name=".Activities.Dashboard"
+        android:theme="@style/Theme.MeshaApp.Fullscreen"
+        android:hardwareAccelerated="true"
+        android:exported="true">
+    </activity>
+
         <activity android:name=".Activities.AlphaAccountDetailActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"
             android:hardwareAccelerated="true"
             android:exported="true">
         </activity>
+
+        <activity android:name=".PActivities.PDashboard"
+            android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
+            android:exported="true">
+        </activity>
+
+        <activity android:name=".PActivities.PAlphaAccountDetailActivity"
+            android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
+            android:exported="true">
+        </activity>
+
+        <activity android:name=".PActivities.PBetaAccountDetailActivity"
+            android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
+            android:exported="true">
+        </activity>
+
+        <activity android:name=".PActivities.PAnalysisActivity"
+            android:theme="@style/Theme.MeshaApp.Fullscreen"
+            android:hardwareAccelerated="true"
+            android:exported="true">
+        </activity>
+
 
         <activity android:name=".Activities.BetaAccountDetailActivity"
             android:theme="@style/Theme.MeshaApp.Fullscreen"

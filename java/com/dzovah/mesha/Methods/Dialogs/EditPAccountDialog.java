@@ -13,9 +13,10 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import com.dzovah.mesha.Activities.Adapters.IconAdapter;
-import com.dzovah.mesha.Database.Entities.AlphaAccount;
-import com.dzovah.mesha.Database.Entities.BetaAccount;
+import com.dzovah.mesha.Database.Entities.PAlphaAccount;
+import com.dzovah.mesha.Database.Entities.PBetaAccount;
 import com.dzovah.mesha.Database.MeshaDatabase;
+import com.dzovah.mesha.Methods.Dialogs.CreatePAccountDialog;
 import com.dzovah.mesha.R;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -46,39 +47,39 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Electra Magus
  * @version 1.0
- * @see AlphaAccount
- * @see BetaAccount
- * @see CreateAccountDialog
+ * @see PAlphaAccount
+ * @see PBetaAccount
+ * @see CreatePAccountDialog
  */
-public class EditAccountDialog {
+public class EditPAccountDialog {
     /** The application context used for UI operations */
     private final Context context;
-    
+
     /** The database instance for data access */
     private final MeshaDatabase database;
-    
+
     /** The account being edited (either AlphaAccount or BetaAccount) */
     private final Object account;
-    
+
     /** Listener to notify when an account is edited or deleted */
-    private OnAccountEditedListener listener;
-    
+    private com.dzovah.mesha.Methods.Dialogs.EditPAccountDialog.OnAccountEditedListener listener;
+
     /** The AlertDialog instance that displays the UI */
     private AlertDialog dialog;
-    
+
     /** Flag indicating whether the dialog is editing a BetaAccount (true) or AlphaAccount (false) */
     private final boolean isBetaAccount;
-    
+
     /** Progress indicator for loading and processing */
     private ProgressBar progressBar;
     private TextView statusTextView;
-    
+
     /** Main thread handler for UI updates */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    
+
     /** Dedicated executor for database operations */
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
-    
+
     /** Flag to track if the dialog is active to prevent memory leaks */
     private final AtomicBoolean isActive = new AtomicBoolean(true);
 
@@ -95,7 +96,7 @@ public class EditAccountDialog {
          * Called when an account is successfully edited.
          */
         void onAccountEdited();
-        
+
         /**
          * Called when an account is successfully deleted.
          */
@@ -114,11 +115,11 @@ public class EditAccountDialog {
      * @param database The database instance for accessing data
      * @param account The account object to edit (either AlphaAccount or BetaAccount)
      */
-    public EditAccountDialog(Context context, MeshaDatabase database, Object account) {
+    public EditPAccountDialog(Context context, MeshaDatabase database, Object account) {
         this.context = context;
         this.database = database;
         this.account = account;
-        this.isBetaAccount = account instanceof BetaAccount;
+        this.isBetaAccount = account instanceof PBetaAccount;
     }
 
     /**
@@ -130,7 +131,7 @@ public class EditAccountDialog {
      *
      * @param listener The listener to be notified
      */
-    public void setOnAccountEditedListener(OnAccountEditedListener listener) {
+    public void setOnAccountEditedListener(com.dzovah.mesha.Methods.Dialogs.EditPAccountDialog.OnAccountEditedListener listener) {
         this.listener = listener;
     }
 
@@ -144,28 +145,28 @@ public class EditAccountDialog {
      */
     public void show() {
         if (!isActive.get()) return;
-        
+
         View dialogView = getView();
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(dialogView);
         dialog = builder.create();
-        
+
         // Set dismiss listener to clean up resources
         dialog.setOnDismissListener(dialogInterface -> cleanupResources());
-        
+
         dialog.show();
     }
-    
+
     /**
      * Cleans up resources to prevent memory leaks when the dialog is dismissed.
      */
     private void cleanupResources() {
         // Mark dialog as inactive to prevent further callbacks
         isActive.set(false);
-        
+
         // Remove all callbacks from the handler
         mainHandler.removeCallbacksAndMessages(null);
-        
+
         // Shutdown the executor service
         dbExecutor.shutdown();
     }
@@ -182,23 +183,23 @@ public class EditAccountDialog {
      */
     private View getView() {
         if (!isActive.get()) return null;
-        
+
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_create_account, null);
         TextInputEditText etAccountName = dialogView.findViewById(R.id.etAccountName);
         RecyclerView rvIcons = dialogView.findViewById(R.id.rvIcons);
         Button btnSave = dialogView.findViewById(R.id.btnCreate);
         Button btnDelete = dialogView.findViewById(R.id.btnCancel);
-        
+
         // Initialize progress indicators if they exist in the layout
         progressBar = dialogView.findViewById(R.id.progressBar);
 
         // Set current values based on account type
-        String currentName = isBetaAccount ? 
-            ((BetaAccount)account).getBetaAccountName() : 
-            ((AlphaAccount)account).getAlphaAccountName();
-        String currentIcon = isBetaAccount ? 
-            ((BetaAccount)account).getBetaAccountIcon() : 
-            ((AlphaAccount)account).getAlphaAccountIcon();
+        String currentName = isBetaAccount ?
+                ((PBetaAccount)account).getPBetaAccountName() :
+                ((PAlphaAccount)account).getPAlphaAccountName();
+        String currentIcon = isBetaAccount ?
+                ((PBetaAccount)account).getPBetaAccountIcon() :
+                ((PAlphaAccount)account).getPAlphaAccountIcon();
 
         etAccountName.setText(currentName);
         btnSave.setText("Save Changes");
@@ -206,7 +207,7 @@ public class EditAccountDialog {
 
         String[] iconPaths = CreateAccountDialog.getIconPaths(context);
         final String[] selectedIcon = {currentIcon};
-        
+
         GridLayoutManager layoutManager = new GridLayoutManager(context, 4);
         rvIcons.setLayoutManager(layoutManager);
         IconAdapter adapter = new IconAdapter(iconPaths, iconPath -> {
@@ -217,36 +218,36 @@ public class EditAccountDialog {
 
         btnSave.setOnClickListener(v -> {
             if (!isActive.get()) return;
-            
+
             String newName = etAccountName.getText().toString();
             if (newName.isEmpty()) {
                 Toast.makeText(context, "Please enter an account name", Toast.LENGTH_SHORT).show();
                 return;
             }
-            
+
             // Disable buttons to prevent multiple clicks
             btnSave.setEnabled(false);
             btnDelete.setEnabled(false);
-            
+
             updateAccount(newName, selectedIcon[0]);
         });
 
         btnDelete.setOnClickListener(v -> {
             if (!isActive.get()) return;
-            
-            String message = isBetaAccount ? 
-                "Are you sure you want to delete this account? This will delete all associated transactions." :
-                "Are you sure you want to delete this account? This will delete all associated beta accounts and transactions.";
+
+            String message = isBetaAccount ?
+                    "Are you sure you want to delete this account? This will delete all associated transactions." :
+                    "Are you sure you want to delete this account? This will delete all associated beta accounts and transactions.";
 
             new AlertDialog.Builder(context)
-                .setTitle("Delete Account")
-                .setMessage(message)
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    if (!isActive.get()) return;
-                    deleteAccount();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                    .setTitle("Delete Account")
+                    .setMessage(message)
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        if (!isActive.get()) return;
+                        deleteAccount();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
 
         return dialogView;
@@ -265,27 +266,27 @@ public class EditAccountDialog {
      */
     private void updateAccount(String newName, String newIcon) {
         if (!isActive.get()) return;
-        
+
         showLoading("Updating account...");
-        
+
         executeIfActive(() -> {
             try {
-                String iconPath = newIcon != null ? "Assets/icons/" + newIcon : 
-                    (isBetaAccount ? ((BetaAccount)account).getBetaAccountIcon() : 
-                    ((AlphaAccount)account).getAlphaAccountIcon());
+                String iconPath = newIcon != null ? "Assets/icons/" + newIcon :
+                        (isBetaAccount ? ((PBetaAccount)account).getPBetaAccountIcon() :
+                                ((PAlphaAccount)account).getPAlphaAccountIcon());
 
                 if (isBetaAccount) {
-                    BetaAccount betaAccount = (BetaAccount)account;
-                    betaAccount.setBetaAccountName(newName);
-                    betaAccount.setBetaAccountIcon(iconPath);
-                    database.betaAccountDao().update(betaAccount);
+                    PBetaAccount betaAccount = (PBetaAccount)account;
+                    betaAccount.setPBetaAccountName(newName);
+                    betaAccount.setPBetaAccountIcon(iconPath);
+                    database.PbetaAccountDao().update(betaAccount);
                 } else {
-                    AlphaAccount alphaAccount = (AlphaAccount)account;
-                    alphaAccount.setAlphaAccountName(newName);
-                    alphaAccount.setAlphaAccountIcon(iconPath);
-                    database.alphaAccountDao().update(alphaAccount);
+                    PAlphaAccount alphaAccount = (PAlphaAccount)account;
+                    alphaAccount.setPAlphaAccountName(newName);
+                    alphaAccount.setPAlphaAccountIcon(iconPath);
+                    database.PalphaAccountDao().update(alphaAccount);
                 }
-                
+
                 handleSuccess(false); // false indicates edited, not deleted
             } catch (Exception e) {
                 handleError(e);
@@ -307,17 +308,17 @@ public class EditAccountDialog {
      */
     private void deleteAccount() {
         if (!isActive.get()) return;
-        
+
         showLoading("Deleting account...");
-        
+
         executeIfActive(() -> {
             try {
                 if (isBetaAccount) {
-                    BetaAccount betaAccount = (BetaAccount)account;
-                    database.betaAccountDao().delete(betaAccount);
-                    database.betaAccountDao().updateAlphaAccountBalance(betaAccount.getAlphaAccountId());
+                    PBetaAccount betaAccount = (PBetaAccount)account;
+                    database.PbetaAccountDao().delete(betaAccount);
+                    database.PbetaAccountDao().updatePAlphaAccountBalance(betaAccount.getPAlphaAccountId());
                 } else {
-                    database.alphaAccountDao().delete((AlphaAccount)account);
+                    database.PalphaAccountDao().delete((PAlphaAccount)account);
                 }
                 handleSuccess(true); // true indicates deleted, not edited
             } catch (Exception e) {
@@ -333,7 +334,7 @@ public class EditAccountDialog {
      * (either onAccountEdited or onAccountDeleted) based on which operation was
      * performed. It ensures that all UI operations occur on the main thread.
      * </p>
-     * 
+     *
      * @param wasDeleted true if the account was deleted, false if it was edited
      */
     private void handleSuccess(boolean wasDeleted) {
@@ -366,7 +367,7 @@ public class EditAccountDialog {
         postToMainThreadIfActive(() -> {
             hideLoading();
             Toast.makeText(context, "Operation failed", Toast.LENGTH_SHORT).show();
-            
+
             // Re-enable buttons
             if (dialog != null) {
                 Button btnSave = dialog.findViewById(R.id.btnCreate);
@@ -376,11 +377,11 @@ public class EditAccountDialog {
             }
         });
     }
-    
+
     /**
      * Helper method to execute a task on the background thread only if the dialog is active.
      * Helps prevent memory leaks by not executing tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to execute
      */
     private void executeIfActive(Runnable task) {
@@ -392,11 +393,11 @@ public class EditAccountDialog {
             });
         }
     }
-    
+
     /**
      * Helper method to post a task to the main thread only if the dialog is active.
      * Helps prevent memory leaks by not posting tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to post to the main thread
      */
     private void postToMainThreadIfActive(Runnable task) {
@@ -408,7 +409,7 @@ public class EditAccountDialog {
             });
         }
     }
-    
+
     /**
      * Shows a loading indicator with a status message
      * @param message The status message to display
@@ -422,7 +423,7 @@ public class EditAccountDialog {
             }
         });
     }
-    
+
     /**
      * Updates the loading status message
      * @param message The new status message
@@ -434,7 +435,7 @@ public class EditAccountDialog {
             }
         });
     }
-    
+
     /**
      * Hides the loading indicator
      */

@@ -1,4 +1,4 @@
-package com.dzovah.mesha.Activities;
+package com.dzovah.mesha.PActivities;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -19,15 +19,18 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.airbnb.lottie.LottieAnimationView;
+import com.dzovah.mesha.Activities.AccountsSection;
+import com.dzovah.mesha.Activities.Dashboard;
+import com.dzovah.mesha.Activities.SignInActivity;
+import com.dzovah.mesha.Activities.UserPrefsActivity;
 import com.dzovah.mesha.Database.Entities.Meshans;
-import com.dzovah.mesha.PActivities.PDashboard;
 import com.dzovah.mesha.R;
 import com.dzovah.mesha.Methods.Utils.Quotes;
-import com.dzovah.mesha.Methods.Dialogs.CreateAccountDialog;
+import com.dzovah.mesha.Methods.Dialogs.CreatePAccountDialog;
 import com.dzovah.mesha.Database.MeshaDatabase;
-import com.dzovah.mesha.Database.Entities.AlphaAccount;
+import com.dzovah.mesha.Database.Entities.PAlphaAccount;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.dzovah.mesha.Activities.Adapters.AlphaAccountAdapter;
+import com.dzovah.mesha.PActivities.PAdapters.PAlphaAccountAdapter;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -62,34 +65,34 @@ import com.dzovah.mesha.Methods.Utils.LocalStorageUtil;
  * @author Electra Magus
  * @version 1.0
  * @see AccountsSection
- * @see AlphaAccountDetailActivity
- * @see AnalysisActivity
+ * @see PAlphaAccountDetailActivity
+ * @see PAnalysisActivity
  * @see UserPrefsActivity
  */
-public class Dashboard extends AppCompatActivity {
+public class PDashboard extends AppCompatActivity {
     /** Database instance for accessing app data */
     private MeshaDatabase database;
-    
+
     /** Adapter for displaying alpha accounts in the RecyclerView */
-    private AlphaAccountAdapter accountAdapter;
-    
+    private PAlphaAccountAdapter accountAdapter;
+
     /** DrawerLayout for the navigation drawer */
     private DrawerLayout drawerLayout;
-    
+
     /** NavigationView containing the navigation menu items */
     private NavigationView navigationView;
-    
+
     /** Button to open the navigation drawer */
     private ImageButton menuButton;
-    
+
     /** Navigation menu reference for dynamic updates */
     private Menu navMenu;
-    
+
     /** ImageView for displaying the user's profile picture */
     private ImageView profileImageView;
 
     /**
-     * Initializes the dashboard activity, sets up the UI components, 
+     * Initializes the dashboard activity, sets up the UI components,
      * and loads required data.
      * <p>
      * This method initializes the navigation drawer, animations, account list,
@@ -134,13 +137,13 @@ public class Dashboard extends AppCompatActivity {
 
         piechart.setOnClickListener(v -> {
             // Navigate to AnalysisActivity when clicked
-            Intent intent = new Intent(Dashboard.this, AnalysisActivity.class);
+            Intent intent = new Intent(PDashboard.this, PAnalysisActivity.class);
             startActivity(intent);
         });
 
         portal.setOnClickListener(v -> {
             // Navigate to AnalysisActivity when clicked
-            Intent intent = new Intent(Dashboard.this, PDashboard.class);
+            Intent intent = new Intent(PDashboard.this, Dashboard.class);
             startActivity(intent);
         });
 
@@ -148,16 +151,16 @@ public class Dashboard extends AppCompatActivity {
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_account) {
-                startActivity(new Intent(Dashboard.this, AccountsSection.class));
+                startActivity(new Intent(PDashboard.this, AccountsSection.class));
             }
             else if (id == R.id.nav_userpref) {
-                startActivity(new Intent(Dashboard.this, UserPrefsActivity.class));
+                startActivity(new Intent(PDashboard.this, UserPrefsActivity.class));
             }
             else if (id == R.id.nav_signin) {
-                startActivity(new Intent(Dashboard.this, SignInActivity.class));
+                startActivity(new Intent(PDashboard.this, SignInActivity.class));
             } else if (id == R.id.nav_logout) {
                 FirebaseAuth.getInstance().signOut();
-                startActivity(new Intent(Dashboard.this, SignInActivity.class));
+                startActivity(new Intent(PDashboard.this, SignInActivity.class));
                 finish();
             }
             drawerLayout.closeDrawer(GravityCompat.END);
@@ -173,11 +176,11 @@ public class Dashboard extends AppCompatActivity {
      * to avoid blocking the main thread.
      */
     private void initializeAsync() {
-        
+
         // Initialize database and load data on a background thread
         new Thread(() -> {
             database = MeshaDatabase.Get_database(getApplicationContext());
-            
+
             // Run UI initialization on the main thread
             runOnUiThread(() -> {
                 initializeViews();
@@ -188,10 +191,10 @@ public class Dashboard extends AppCompatActivity {
             });
         }).start();
     }
-    
+
     /**
      * Shows or hides a loading state in the UI.
-     * 
+     *
      * @param show True to show loading state, false to hide it
      */
 
@@ -221,15 +224,15 @@ public class Dashboard extends AppCompatActivity {
      * </p>
      */
     private void loadAccounts() {
-        
+
         // Execute database query on a background thread
         MeshaDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                List<AlphaAccount> accounts = database.alphaAccountDao().getAllAlphaAccounts();
+                List<PAlphaAccount> accounts = database.PalphaAccountDao().getAllPAlphaAccounts();
                 // Update UI on the main thread
                 runOnUiThread(() -> {
                     accountAdapter.setAccounts(accounts);
-                    
+
                     // Update empty state visibility
                    /* View emptyView = findViewById(R.id.emptyStateLayout);
                     if (emptyView != null) {
@@ -241,7 +244,7 @@ public class Dashboard extends AppCompatActivity {
             } catch (Exception e) {
                 Log.e("Dashboard", "Error loading accounts", e);
                 runOnUiThread(() -> {
-                    Toast.makeText(Dashboard.this, "Failed to load accounts: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(PDashboard.this, "Failed to load accounts: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
             }
         });
@@ -259,8 +262,8 @@ public class Dashboard extends AppCompatActivity {
         if (currentUser == null) {
             // Set default image if user is not logged in
             Glide.with(this)
-                .load(R.drawable.icon_mesha)
-                .into(profileImageView);
+                    .load(R.drawable.icon_mesha)
+                    .into(profileImageView);
             return;
         }
 
@@ -276,10 +279,10 @@ public class Dashboard extends AppCompatActivity {
             if (user != null && user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().equals("to edit")) {
                 // Load from network using Glide (which handles threading automatically)
                 Glide.with(this)
-                    .load(user.getProfilePictureUrl())
-                    .placeholder(R.drawable.icon_mesha)
-                    .error(R.drawable.icon_mesha)
-                    .into(profileImageView);
+                        .load(user.getProfilePictureUrl())
+                        .placeholder(R.drawable.icon_mesha)
+                        .error(R.drawable.icon_mesha)
+                        .into(profileImageView);
             } else {
                 // Set default image
                 profileImageView.setImageResource(R.drawable.icon_mesha);
@@ -313,12 +316,12 @@ public class Dashboard extends AppCompatActivity {
         tvQuoteOfTheDay.setText(quotes.presentQuote());
         RecyclerView rvAccounts = findViewById(R.id.alpha_accounts_recyclerview);
         rvAccounts.setLayoutManager(new LinearLayoutManager(this));
-        accountAdapter = new AlphaAccountAdapter(this);
-        accountAdapter.setOnAccountActionListener(new AlphaAccountAdapter.OnAccountActionListener() {
+        accountAdapter = new PAlphaAccountAdapter(this);
+        accountAdapter.setOnAccountActionListener(new PAlphaAccountAdapter.OnAccountActionListener() {
             @Override
-            public void onAccountClicked(AlphaAccount account, int position) {
-                Intent intent = new Intent(Dashboard.this, AlphaAccountDetailActivity.class);
-                intent.putExtra("alpha_account_id", account.getAlphaAccountId());
+            public void onAccountClicked(PAlphaAccount account, int position) {
+                Intent intent = new Intent(PDashboard.this, PAlphaAccountDetailActivity.class);
+                intent.putExtra("Palpha_account_id", account.getPAlphaAccountId());
                 startActivity(intent);
             }
 
@@ -339,7 +342,7 @@ public class Dashboard extends AppCompatActivity {
      * </p>
      */
     private void showCreateAccountDialog() {
-        CreateAccountDialog dialog = new CreateAccountDialog(this, database);
+        CreatePAccountDialog dialog = new CreatePAccountDialog(this, database);
         dialog.setOnAccountCreatedListener(account -> {
             try {
                 Toast.makeText(this, "Account created successfully", Toast.LENGTH_SHORT).show();
@@ -349,7 +352,7 @@ public class Dashboard extends AppCompatActivity {
                 Toast.makeText(this, "Error updating account list", Toast.LENGTH_SHORT).show();
             }
         });
-        dialog.show(); 
+        dialog.show();
     }
 
     /**

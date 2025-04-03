@@ -15,9 +15,9 @@ import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
-import com.dzovah.mesha.Database.Entities.AlphaAccount;
-import com.dzovah.mesha.Database.Entities.BetaAccount;
-import com.dzovah.mesha.Database.Entities.Transaction;
+import com.dzovah.mesha.Database.Entities.PAlphaAccount;
+import com.dzovah.mesha.Database.Entities.PBetaAccount;
+import com.dzovah.mesha.Database.Entities.PTransaction;
 import com.dzovah.mesha.Database.MeshaDatabase;
 import com.dzovah.mesha.Database.Utils.CurrencyFormatter;
 import com.dzovah.mesha.Database.Utils.TransactionType;
@@ -51,63 +51,63 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Electra Magus
  * @version 1.0
- * @see Transaction
- * @see BetaAccount
- * @see AlphaAccount
+ * @see PTransaction
+ * @see PBetaAccount
+ * @see PAlphaAccount
  * @see AlternativeBetaAccountDialog
  */
-public class EditTransactionDialog extends Dialog {
+public class EditPTransactionDialog extends Dialog {
     /**
      * The application context used for UI operations.
      */
     private final Context context;
-    
+
     /**
      * The database instance for data access.
      */
     private final MeshaDatabase database;
-    
+
     /**
      * The transaction being edited.
      */
-    private final Transaction transaction;
-    
+    private final PTransaction transaction;
+
     /**
      * The BetaAccount associated with the transaction.
      */
-    private final BetaAccount betaAccount;
-    
+    private final PBetaAccount betaAccount;
+
     /**
      * Listener to notify when a transaction is edited or deleted.
      */
     private OnTransactionEditedListener listener;
-    
+
     /**
      * Spinner for selecting transaction categories.
      */
     private Spinner categorySpinner;
-    
+
     /**
      * List of available categories.
      */
     private List<Category> categories;
-    
+
     /**
      * Progress indicator for loading and processing.
      */
     private ProgressBar progressBar;
     private TextView statusTextView;
-    
+
     /**
      * Main thread handler for UI updates.
      */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    
+
     /**
      * Dedicated executor for database operations.
      */
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
-    
+
     /**
      * Flag to track if the dialog is active to prevent memory leaks.
      */
@@ -126,7 +126,7 @@ public class EditTransactionDialog extends Dialog {
          * Called when a transaction is successfully edited.
          */
         void onTransactionEdited();
-        
+
         /**
          * Called when a transaction is successfully deleted.
          */
@@ -145,29 +145,29 @@ public class EditTransactionDialog extends Dialog {
      * @param transaction The transaction object to edit
      * @param betaAccount The BetaAccount associated with the transaction
      */
-    public EditTransactionDialog(Context context, MeshaDatabase database, Transaction transaction, BetaAccount betaAccount) {
+    public EditPTransactionDialog(Context context, MeshaDatabase database, PTransaction transaction, PBetaAccount betaAccount) {
         super(context);
         this.context = context;
         this.database = database;
         this.transaction = transaction;
         this.betaAccount = betaAccount;
-        
+
         // Set dismiss listener to handle cleanup
         setOnDismissListener(dialog -> cleanupResources());
-        
+
         setupDialog();
     }
-    
+
     /**
      * Cleans up resources to prevent memory leaks when the dialog is dismissed.
      */
     private void cleanupResources() {
         // Mark dialog as inactive to prevent further callbacks
         isActive.set(false);
-        
+
         // Remove all callbacks from the handler
         mainHandler.removeCallbacksAndMessages(null);
-        
+
         // Shutdown the executor service
         dbExecutor.shutdown();
     }
@@ -195,7 +195,7 @@ public class EditTransactionDialog extends Dialog {
      */
     private void setupDialog() {
         if (!isActive.get()) return;
-        
+
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_transaction, null);
         setContentView(dialogView);
 
@@ -204,13 +204,13 @@ public class EditTransactionDialog extends Dialog {
         Button btnUpdate = dialogView.findViewById(R.id.btnUpdate);
         Button btnDelete = dialogView.findViewById(R.id.btnDelete);
         Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-        
+
         // Initialize progress indicators
         progressBar = dialogView.findViewById(R.id.progressBar);
 
         // Set current values
-        etAmount.setText(String.valueOf(Math.abs(transaction.getTransactionAmount())));
-        etDescription.setText(transaction.getTransactionDescription());
+        etAmount.setText(String.valueOf(Math.abs(transaction.getPTransactionAmount())));
+        etDescription.setText(transaction.getPTransactionDescription());
 
         // Initialize category spinner
         categorySpinner = dialogView.findViewById(R.id.categorySpinner);
@@ -218,7 +218,7 @@ public class EditTransactionDialog extends Dialog {
 
         btnUpdate.setOnClickListener(v -> {
             if (!isActive.get()) return;
-            
+
             String amountStr = etAmount.getText().toString();
             String description = etDescription.getText().toString();
 
@@ -229,30 +229,30 @@ public class EditTransactionDialog extends Dialog {
 
             try {
                 double amount = Double.parseDouble(amountStr);
-                
+
                 // Disable buttons to prevent multiple clicks
                 btnUpdate.setEnabled(false);
                 btnDelete.setEnabled(false);
-                
+
                 // Check if it's a debit transaction and would cause negative balance
-                if (transaction.getTransactionType() == TransactionType.DEBIT) {
-                    double currentBalance = betaAccount.getBetaAccountBalance();
-                    double oldAmount = Math.abs(transaction.getTransactionAmount());
-                    
+                if (transaction.getPTransactionType() == TransactionType.DEBIT) {
+                    double currentBalance = betaAccount.getPBetaAccountBalance();
+                    double oldAmount = Math.abs(transaction.getPTransactionAmount());
+
                     // Calculate the additional withdrawal
                     double additionalWithdrawal = amount - oldAmount;
-                    
+
                     // If additional withdrawal would cause negative balance
                     if (additionalWithdrawal > 0 && additionalWithdrawal > currentBalance) {
                         showAlternativeAccountDialog(additionalWithdrawal, description);
-                        
+
                         // Re-enable buttons since we're showing another dialog
                         btnUpdate.setEnabled(true);
                         btnDelete.setEnabled(true);
                         return;
                     }
                 }
-                
+
                 updateTransaction(amount, description);
             } catch (NumberFormatException e) {
                 Toast.makeText(context, "Invalid amount", Toast.LENGTH_SHORT).show();
@@ -263,21 +263,21 @@ public class EditTransactionDialog extends Dialog {
 
         btnDelete.setOnClickListener(v -> {
             if (!isActive.get()) return;
-            
+
             new MaterialAlertDialogBuilder(context)
-                .setTitle("Delete Transaction")
-                .setMessage("Are you sure you want to delete this transaction?")
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    if (!isActive.get()) return;
-                    
-                    // Disable buttons to prevent multiple clicks
-                    btnUpdate.setEnabled(false);
-                    btnDelete.setEnabled(false);
-                    
-                    deleteTransaction();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                    .setTitle("Delete Transaction")
+                    .setMessage("Are you sure you want to delete this transaction?")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        if (!isActive.get()) return;
+
+                        // Disable buttons to prevent multiple clicks
+                        btnUpdate.setEnabled(false);
+                        btnDelete.setEnabled(false);
+
+                        deleteTransaction();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
 
         btnCancel.setOnClickListener(v -> {
@@ -296,9 +296,9 @@ public class EditTransactionDialog extends Dialog {
      */
     private void loadCategories() {
         if (!isActive.get()) return;
-        
+
         showLoading("Loading categories...");
-        
+
         executeIfActive(() -> {
             try {
                 categories = database.categoryDao().getAllCategories();
@@ -306,7 +306,7 @@ public class EditTransactionDialog extends Dialog {
                     hideLoading();
                     CategorySpinnerAdapter adapter = new CategorySpinnerAdapter(context, categories);
                     categorySpinner.setAdapter(adapter);
-                    
+
                     // Set selected category
                     for (int i = 0; i < categories.size(); i++) {
                         if (categories.get(i).getCategoryId() == transaction.getCategoryId()) {
@@ -339,46 +339,46 @@ public class EditTransactionDialog extends Dialog {
      */
     private void updateTransaction(double newAmount, String newDescription) {
         if (!isActive.get()) return;
-        
+
         showLoading("Updating transaction...");
-        
+
         Category selectedCategory = (Category) categorySpinner.getSelectedItem();
-        
+
         transaction.setCategoryId(selectedCategory != null ? selectedCategory.getCategoryId() : 1);
-        transaction.setTransactionDescription(newDescription);
+        transaction.setPTransactionDescription(newDescription);
 
         executeIfActive(() -> {
             try {
                 // Calculate the difference in amount
-                double oldAmount = transaction.getTransactionAmount();
+                double oldAmount = transaction.getPTransactionAmount();
                 double amountDifference = newAmount - Math.abs(oldAmount);
-                
+
                 // Maintain the sign (credit/debit) of the original transaction
                 if (oldAmount < 0) {
                     amountDifference = -amountDifference;
                 }
 
                 updateLoadingStatus("Saving changes...");
-                
+
                 // Update transaction
-                transaction.setTransactionAmount(oldAmount < 0 ? -newAmount : newAmount);
-                transaction.setTransactionDescription(newDescription);
-                database.transactionDao().update(transaction);
+                transaction.setPTransactionAmount(oldAmount < 0 ? -newAmount : newAmount);
+                transaction.setPTransactionDescription(newDescription);
+                database.PtransactionDao().update(transaction);
 
                 updateLoadingStatus("Updating account balances...");
-                
+
                 // Update beta account balance
-                double newBetaBalance = betaAccount.getBetaAccountBalance() + amountDifference;
-                betaAccount.setBetaAccountBalance(newBetaBalance);
-                database.betaAccountDao().update(betaAccount);
+                double newBetaBalance = betaAccount.getPBetaAccountBalance() + amountDifference;
+                betaAccount.setPBetaAccountBalance(newBetaBalance);
+                database.PbetaAccountDao().update(betaAccount);
 
                 // Update alpha account balance
-                AlphaAccount alphaAccount = database.alphaAccountDao()
-                    .getAlphaAccountById(betaAccount.getAlphaAccountId());
+                PAlphaAccount alphaAccount = database.PalphaAccountDao()
+                        .getPAlphaAccountById(betaAccount.getPAlphaAccountId());
                 if (alphaAccount != null) {
-                    double newAlphaBalance = alphaAccount.getAlphaAccountBalance() + amountDifference;
-                    alphaAccount.setAlphaAccountBalance(newAlphaBalance);
-                    database.alphaAccountDao().update(alphaAccount);
+                    double newAlphaBalance = alphaAccount.getPAlphaAccountBalance() + amountDifference;
+                    alphaAccount.setPAlphaAccountBalance(newAlphaBalance);
+                    database.PalphaAccountDao().update(alphaAccount);
                 }
 
                 postToMainThreadIfActive(() -> {
@@ -394,7 +394,7 @@ public class EditTransactionDialog extends Dialog {
                 postToMainThreadIfActive(() -> {
                     hideLoading();
                     Toast.makeText(context, "Error updating transaction", Toast.LENGTH_SHORT).show();
-                    
+
                     // Re-enable buttons
                     Button btnUpdate = findViewById(R.id.btnUpdate);
                     Button btnDelete = findViewById(R.id.btnDelete);
@@ -415,30 +415,30 @@ public class EditTransactionDialog extends Dialog {
      */
     private void deleteTransaction() {
         if (!isActive.get()) return;
-        
+
         showLoading("Deleting transaction...");
-        
+
         executeIfActive(() -> {
             try {
                 updateLoadingStatus("Removing transaction...");
-                
+
                 // Delete transaction
-                database.transactionDao().delete(transaction);
+                database.PtransactionDao().delete(transaction);
 
                 updateLoadingStatus("Updating account balances...");
-                
+
                 // Update beta account balance
-                double newBetaBalance = betaAccount.getBetaAccountBalance() - transaction.getTransactionAmount();
-                betaAccount.setBetaAccountBalance(newBetaBalance);
-                database.betaAccountDao().update(betaAccount);
+                double newBetaBalance = betaAccount.getPBetaAccountBalance() - transaction.getPTransactionAmount();
+                betaAccount.setPBetaAccountBalance(newBetaBalance);
+                database.PbetaAccountDao().update(betaAccount);
 
                 // Update alpha account balance
-                AlphaAccount alphaAccount = database.alphaAccountDao()
-                    .getAlphaAccountById(betaAccount.getAlphaAccountId());
+                PAlphaAccount alphaAccount = database.PalphaAccountDao()
+                        .getPAlphaAccountById(betaAccount.getPAlphaAccountId());
                 if (alphaAccount != null) {
-                    double newAlphaBalance = alphaAccount.getAlphaAccountBalance() - transaction.getTransactionAmount();
-                    alphaAccount.setAlphaAccountBalance(newAlphaBalance);
-                    database.alphaAccountDao().update(alphaAccount);
+                    double newAlphaBalance = alphaAccount.getPAlphaAccountBalance() - transaction.getPTransactionAmount();
+                    alphaAccount.setPAlphaAccountBalance(newAlphaBalance);
+                    database.PalphaAccountDao().update(alphaAccount);
                 }
 
                 postToMainThreadIfActive(() -> {
@@ -454,7 +454,7 @@ public class EditTransactionDialog extends Dialog {
                 postToMainThreadIfActive(() -> {
                     hideLoading();
                     Toast.makeText(context, "Error deleting transaction", Toast.LENGTH_SHORT).show();
-                    
+
                     // Re-enable buttons
                     Button btnUpdate = findViewById(R.id.btnUpdate);
                     Button btnDelete = findViewById(R.id.btnDelete);
@@ -479,31 +479,31 @@ public class EditTransactionDialog extends Dialog {
      */
     private void showAlternativeAccountDialog(double additionalAmount, String description) {
         if (!isActive.get()) return;
-        
-        AlternativeBetaAccountDialog dialog = new AlternativeBetaAccountDialog(
-            context, database, betaAccount, additionalAmount, description);
-        
+
+        AlternativePBetaAccountDialog dialog = new AlternativePBetaAccountDialog(
+                context, database, betaAccount, additionalAmount, description);
+
         dialog.setOnTransactionCompletedListener(() -> {
             if (!isActive.get()) return;
-            
+
             showLoading("Refreshing account data...");
-            
+
             // After funds transfer completed, refresh beta account data and continue
             executeIfActive(() -> {
                 try {
                     // Refresh beta account data
-                    BetaAccount refreshedAccount = database.betaAccountDao()
-                        .getBetaAccountById(betaAccount.getBetaAccountId());
-                    
+                    PBetaAccount refreshedAccount = database.PbetaAccountDao()
+                            .getPBetaAccountById(betaAccount.getPBetaAccountId());
+
                     if (refreshedAccount != null) {
                         // Update our local copy with refreshed data
-                        betaAccount.setBetaAccountBalance(refreshedAccount.getBetaAccountBalance());
-                        
+                        betaAccount.setPBetaAccountBalance(refreshedAccount.getPBetaAccountBalance());
+
                         // Calculate total amount from form
                         EditText etAmount = findViewById(R.id.etTransactionAmount);
                         if (etAmount != null) {
                             double totalAmount = Double.parseDouble(etAmount.getText().toString());
-                            
+
                             // Now proceed with the original transaction update
                             postToMainThreadIfActive(() -> {
                                 hideLoading();
@@ -517,7 +517,7 @@ public class EditTransactionDialog extends Dialog {
                     postToMainThreadIfActive(() -> {
                         hideLoading();
                         Toast.makeText(context, "Error refreshing account data", Toast.LENGTH_SHORT).show();
-                        
+
                         // Re-enable buttons
                         Button btnUpdate = findViewById(R.id.btnUpdate);
                         if (btnUpdate != null) btnUpdate.setEnabled(true);
@@ -525,14 +525,14 @@ public class EditTransactionDialog extends Dialog {
                 }
             });
         });
-        
+
         dialog.show();
     }
-    
+
     /**
      * Helper method to execute a task on the background thread only if the dialog is active.
      * Helps prevent memory leaks by not executing tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to execute
      */
     private void executeIfActive(Runnable task) {
@@ -544,11 +544,11 @@ public class EditTransactionDialog extends Dialog {
             });
         }
     }
-    
+
     /**
      * Helper method to post a task to the main thread only if the dialog is active.
      * Helps prevent memory leaks by not posting tasks after dialog dismissal.
-     * 
+     *
      * @param task The task to post to the main thread
      */
     private void postToMainThreadIfActive(Runnable task) {
@@ -560,7 +560,7 @@ public class EditTransactionDialog extends Dialog {
             });
         }
     }
-    
+
     /**
      * Shows a loading indicator with a status message
      * @param message The status message to display
@@ -574,7 +574,7 @@ public class EditTransactionDialog extends Dialog {
             }
         });
     }
-    
+
     /**
      * Updates the loading status message
      * @param message The new status message
@@ -586,7 +586,7 @@ public class EditTransactionDialog extends Dialog {
             }
         });
     }
-    
+
     /**
      * Hides the loading indicator
      */
@@ -598,7 +598,7 @@ public class EditTransactionDialog extends Dialog {
             }
         });
     }
-    
+
     @Override
     public void dismiss() {
         // Clean up resources before dismissing

@@ -1,12 +1,16 @@
 package com.dzovah.mesha.Activities;
 
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.text.method.PasswordTransformationMethod;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.dzovah.mesha.Methods.Utils.AuthManager;
 import com.dzovah.mesha.R;
@@ -66,6 +70,13 @@ public class SignUpActivity extends AppCompatActivity {
     /** Button for Google sign-up */
     private Button googleSignUpButton;
 
+    /** Image view to toggle password visibility */
+    private ImageView passwordToggleIcon;
+
+    /** Booloean for password visibility */
+    private boolean passwordVisible = false;
+
+
     /**
      * Initializes the activity, sets up the UI components and event listeners.
      *
@@ -82,7 +93,7 @@ public class SignUpActivity extends AppCompatActivity {
         signUpButton = findViewById(R.id.signupButton);
         signInTextView = findViewById(R.id.signinTextView);
         googleSignUpButton = findViewById(R.id.googleSignUpButton);
-
+        passwordToggleIcon = findViewById(R.id.passwordToggleButton);
         // Initialize AuthManager
         authManager = new AuthManager(this);
 
@@ -95,12 +106,14 @@ public class SignUpActivity extends AppCompatActivity {
         signUpButton.setOnClickListener(v -> signUp());
         signInTextView.setOnClickListener(v -> navigateToSignIn());
         googleSignUpButton.setOnClickListener(v -> startGoogleSignIn());
+        passwordToggleIcon.setOnClickListener(v -> togglePasswordVisibility());
 
         TextView continueWithoutSignUpText = findViewById(R.id.continueWithoutSignUpText);
         continueWithoutSignUpText.setOnClickListener(v -> {
             startActivity(new Intent(SignUpActivity.this, Dashboard.class));
             finish();
         });
+        updateToggleIcon();
     }
 
     /**
@@ -134,6 +147,39 @@ public class SignUpActivity extends AppCompatActivity {
             }
         });
     }
+
+    /**
+     * Toggles the visibility of the password and updates the toggle icon.
+     * This method is called when the password toggle icon is clicked.
+     */
+    private void togglePasswordVisibility() {
+        passwordVisible = !passwordVisible;
+        updatePasswordVisibility();
+        updateToggleIcon();
+    }
+
+    /**
+     * Updates the visibility of the password in the EditText.
+     * Sets the input type of the passwordEditText to show or hide the password.
+     */
+    private void updatePasswordVisibility() {
+        int selection = passwordEditText.getSelectionEnd(); // Keep cursor position
+        passwordEditText.setTransformationMethod(passwordVisible
+                ? null
+                : PasswordTransformationMethod.getInstance());
+        passwordEditText.setSelection(selection); // Restore cursor position
+    }
+
+    /**
+     * Updates the password toggle icon based on the password visibility state.
+     * Sets the drawable of the passwordToggleIcon to either the "eye" or "closed eye" icon.
+     */
+    private void updateToggleIcon() {
+        Drawable icon = ContextCompat.getDrawable(this, passwordVisible ? R.drawable.ic_eye : R.drawable.ic_closed_eye);
+        passwordToggleIcon.setImageDrawable(icon);
+    }
+
+
 
     /**
      * Navigates to the SignInActivity.

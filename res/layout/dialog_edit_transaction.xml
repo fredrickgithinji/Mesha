@@ -2,7 +2,7 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_margin="12dp"
     app:cardElevation="4dp"
@@ -85,51 +85,51 @@
             android:prompt="@string/select_category" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="280dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/silver"
-            android:padding="8dp"
             android:layout_marginTop="16dp"
-            android:gravity="end">
+            android:background="@color/silver"
+            android:gravity="end"
+            android:orientation="horizontal"
+            android:padding="8dp">
 
             <Button
                 android:id="@+id/btnDelete"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Delete"
-                android:textColor="@color/white"
                 android:backgroundTint="#FF5252"
-                android:textAllCaps="false"
-                android:padding="8dp"
                 android:minHeight="0dp"
-                android:textSize="16sp"/>
+                android:padding="8dp"
+                android:text="Delete"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/btnCancel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cancel"
-                android:textColor="@color/black"
-                android:backgroundTint="@color/silver2"
-                android:textAllCaps="false"
-                android:padding="8dp"
-                android:minHeight="0dp"
                 android:layout_marginStart="8dp"
-                android:textSize="16sp"/>
+                android:backgroundTint="@color/silver2"
+                android:minHeight="0dp"
+                android:padding="8dp"
+                android:text="Cancel"
+                android:textAllCaps="false"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/btnUpdate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Update"
-                android:textColor="@color/white"
-                android:backgroundTint="@color/silver2"
-                android:textAllCaps="false"
-                android:padding="8dp"
-                android:minHeight="0dp"
                 android:layout_marginStart="8dp"
-                android:textSize="16sp"/>
+                android:backgroundTint="@color/silver2"
+                android:minHeight="0dp"
+                android:padding="8dp"
+                android:text="Update"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
         </LinearLayout>
 
     </LinearLayout>
